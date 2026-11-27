@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     "incidents",
     "documents",
     "echeances",
+    "agenda",
 ]
 
 MIDDLEWARE = [

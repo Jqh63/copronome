@@ -18,7 +18,7 @@ from copro.models import Batiment, Lot
 pytestmark = pytest.mark.django_db
 
 # Modules de l'app : toute vue qui en vient doit être marquée par `exige` ou `public`.
-MODULES_APP = ("copronome.", "copro.", "acces.", "incidents.", "documents.", "echeances.")
+MODULES_APP = ("copronome.", "copro.", "acces.", "incidents.", "documents.", "echeances.", "agenda.")
 
 
 def _routes(resolver=None, prefixe=""):
@@ -45,7 +45,7 @@ def test_les_vues_publiques_sont_celles_attendues():
         for route, vue in _routes()
         if vue.__module__.startswith(MODULES_APP) and getattr(vue, "controle_acces", None) == "public"
     )
-    assert publiques == ["", "invitation/<str:jeton>/", "sante/"]
+    assert publiques == ["", "agenda/ical/<str:jeton>/", "invitation/<str:jeton>/", "sante/"]
 
 
 def _compte(email, role=None, batiment=None, mfa=True):
