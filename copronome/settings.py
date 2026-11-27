@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     "copro",
     "acces",
     "incidents",
+    "documents",
 ]
 
 MIDDLEWARE = [
@@ -159,6 +160,9 @@ STATIC_URL = "static/"
 STATICFILES_DIRS = [BASE_DIR / "copronome" / "static"]
 STATIC_ROOT = Path(env("STATIC_ROOT", BASE_DIR / "staticfiles"))
 MEDIA_ROOT = Path(env("MEDIA_ROOT", BASE_DIR / "media"))
+# Aucun MEDIA_URL : les fichiers ne sont servis que par la vue documents:telecharger.
+DOCUMENT_TAILLE_MAX = int(env("DOCUMENT_TAILLE_MAX_MO", "20")) * 1024 * 1024
+DOCUMENTS_QUOTA = int(env("DOCUMENTS_QUOTA_MO", "2048")) * 1024 * 1024
 
 # Sessions bornées : 14 jours, cookie inaccessible au JavaScript.
 SESSION_COOKIE_AGE = 14 * 24 * 3600

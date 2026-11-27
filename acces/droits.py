@@ -17,6 +17,7 @@ syndic, document public) s'ajoutent ici, jamais dans une vue.
 from functools import wraps
 
 from django.core.exceptions import PermissionDenied
+from django.db.models import Q
 
 from acces.models import Role
 
@@ -52,6 +53,22 @@ DROITS = {
 }
 
 
+# Documents : rôles qui lisent chaque niveau de visibilité (champ
+# `Document.visibilite`). Le droit de domaine reste exigé en plus : un rôle
+# sans « lire documents » ne lit rien, même un document « tous ».
+VISIBILITE_DOCUMENTS = {
+    "cs": {Role.ADMIN, Role.PRESIDENT, Role.MEMBRE_CS},
+    "comptes": {Role.ADMIN, Role.PRESIDENT, Role.MEMBRE_CS, Role.CONTROLEUR},
+    "tous": set(Role),
+}
+
+
+def _visible(role, domaine, objet):
+    if domaine != "documents" or objet is None:
+        return True
+    return role in VISIBILITE_DOCUMENTS[objet.visibilite]
+
+
 def _dans_le_perimetre(affectation, objet):
     if affectation.batiment_id is None or objet is None:
         return True
@@ -65,7 +82,11 @@ def peut(utilisateur, action, domaine, objet=None):
     if not utilisateur.is_authenticated or not utilisateur.is_active:
         return False
     for affectation in utilisateur.affectations.all():
-        if action in DROITS[affectation.role].get(domaine, ()) and _dans_le_perimetre(affectation, objet):
+        if (
+            action in DROITS[affectation.role].get(domaine, ())
+            and _dans_le_perimetre(affectation, objet)
+            and _visible(affectation.role, domaine, objet)
+        ):
             return True
     return False
 
@@ -117,3 +138,19 @@ def batiments_visibles(utilisateur, action, domaine):
                 return None
             ids.add(affectation.batiment_id)
     return ids
+
+
+def filtre_documents(utilisateur):
+    """Filtre (Q) des documents lisibles, même règle que `peut` : droit de
+    lecture, visibilité du rôle et périmètre de bâtiment, affectation par
+    affectation."""
+    filtre = Q(pk__in=[])
+    for affectation in utilisateur.affectations.all():
+        if LIRE not in DROITS[affectation.role].get("documents", ()):
+            continue
+        niveaux = [niveau for niveau, roles in VISIBILITE_DOCUMENTS.items() if affectation.role in roles]
+        condition = Q(visibilite__in=niveaux)
+        if affectation.batiment_id is not None:
+            condition &= Q(batiment__isnull=True) | Q(batiment_id=affectation.batiment_id)
+        filtre |= condition
+    return filtre

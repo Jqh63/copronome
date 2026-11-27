@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block titre %}Documents — Copronome{% endblock %}
+{% block contenu %}
+<h1>Documents</h1>
+<p><a href="{% url 'documents:deposer' %}">Déposer un document</a></p>
+<form method="get">
+  <label for="categorie">Catégorie</label>
+  <select name="categorie" id="categorie">
+    <option value="">Toutes</option>
+    {% for valeur, libelle in categories %}<option value="{{ valeur }}"{% if valeur == categorie %} selected{% endif %}>{{ libelle }}</option>{% endfor %}
+  </select>
+  <button type="submit">Filtrer</button>
+</form>
+<table>
+  <thead><tr><th>Document</th><th>Catégorie</th><th>Lieu</th><th>Visible par</th><th>Taille</th><th>Déposé le</th></tr></thead>
+  <tbody>
+  {% for document in documents %}
+    <tr>
+      <td><a href="{% url 'documents:telecharger' document.pk %}">{{ document.titre }}</a>{% if document.date_document %} ({{ document.date_document|date:"d/m/Y" }}){% endif %}</td>
+      <td>{{ document.get_categorie_display }}</td>
+      <td>{{ document.batiment|default:"Toute la copropriété" }}</td>
+      <td>{{ document.get_visibilite_display }}</td>
+      <td>{{ document.taille|filesizeformat }}</td>
+      <td>{{ document.depose_le|date:"d/m/Y" }}</td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="6">Aucun document.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

@@ -18,7 +18,7 @@ from copro.models import Batiment, Lot
 pytestmark = pytest.mark.django_db
 
 # Modules de l'app : toute vue qui en vient doit être marquée par `exige` ou `public`.
-MODULES_APP = ("copronome.", "copro.", "acces.", "incidents.")
+MODULES_APP = ("copronome.", "copro.", "acces.", "incidents.", "documents.")
 
 
 def _routes(resolver=None, prefixe=""):
