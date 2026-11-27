@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block titre %}{{ incident.titre }} — Copronome{% endblock %}
+{% block contenu %}
+<h1>{{ incident.titre }}</h1>
+<p>{{ incident.get_statut_display }} · priorité {{ incident.get_priorite_display|lower }} · {{ incident.batiment|default:"toute la copropriété" }}{% if incident.transmis_syndic_le %} · transmis au syndic le {{ incident.transmis_syndic_le|date:"d/m/Y" }}{% endif %}</p>
+<p>{{ incident.description|linebreaksbr }}</p>
+<h2>Journal</h2>
+<ol>
+{% for e in evenements %}
+  <li><strong>{{ e.cree_le|date:"d/m/Y H:i" }}</strong> — {{ e.get_type_display }}{% if e.nouveau_statut %} → {{ e.get_nouveau_statut_display }}{% endif %}{% if e.auteur %} ({{ e.auteur.email }}){% endif %}{% if e.texte %}<br>{{ e.texte|linebreaksbr }}{% endif %}</li>
+{% endfor %}
+</ol>
+<h2>Ajouter au journal</h2>
+<form method="post" action="{% url 'incidents:ajouter_evenement' incident.pk %}">{% csrf_token %}{{ form.as_p }}<button type="submit">Ajouter</button></form>
+{% endblock %}

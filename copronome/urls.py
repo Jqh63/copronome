@@ -12,6 +12,7 @@ urlpatterns = [
     path("", views.accueil, name="accueil"),
     path("sante/", views.sante, name="sante"),
     path("lots/", copro_views.liste_lots, name="lots"),
+    path("incidents/", include("incidents.urls")),
     path("invitation/", include("acces.urls")),
     path("compte/", include("allauth.urls")),
     path("admin/", admin.site.urls),

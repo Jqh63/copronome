@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block titre %}Incidents — Copronome{% endblock %}
+{% block contenu %}
+<h1>Incidents</h1>
+<p><a href="{% url 'incidents:creer' %}">Signaler un incident</a></p>
+<table>
+  <thead><tr><th>Incident</th><th>Lieu</th><th>Statut</th><th>Priorité</th><th>Signalé le</th></tr></thead>
+  <tbody>
+  {% for incident in incidents %}
+    <tr>
+      <td><a href="{% url 'incidents:detail' incident.pk %}">{{ incident.titre }}</a></td>
+      <td>{{ incident.batiment|default:"Toute la copropriété" }}{% if incident.partie_commune %} · {{ incident.partie_commune.nom }}{% endif %}{% if incident.lot %} · lot {{ incident.lot.numero }}{% endif %}</td>
+      <td>{{ incident.get_statut_display }}</td><td>{{ incident.get_priorite_display }}</td><td>{{ incident.cree_le|date:"d/m/Y" }}</td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="5">Aucun incident.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

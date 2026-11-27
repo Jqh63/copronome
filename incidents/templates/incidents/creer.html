@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block titre %}Signaler un incident — Copronome{% endblock %}
+{% block contenu %}
+<h1>Signaler un incident</h1>
+<form method="post">{% csrf_token %}{{ form.as_p }}<button type="submit">Enregistrer</button></form>
+{% endblock %}
