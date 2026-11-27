@@ -159,12 +159,17 @@ class Personne(models.Model):
     telephone = models.CharField(max_length=30, blank=True)
     adresse_postale = models.TextField(blank=True, help_text="Pour les envois papier")
     notes = models.TextField(blank=True)
+    efface_le = models.DateField(
+        null=True, blank=True, editable=False, help_text="Coordonnées effacées par la purge (copro.purge)"
+    )
 
     class Meta:
         ordering = ["nom", "prenom"]
         verbose_name = "personne"
 
     def __str__(self):
+        if self.efface_le:
+            return f"Personne effacée n° {self.pk}"
         return f"{self.prenom} {self.nom}".strip()
 
     def clean(self):
