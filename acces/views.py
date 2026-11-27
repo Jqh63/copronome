@@ -8,6 +8,7 @@ from django.utils import timezone
 from acces.droits import public
 from acces.forms import AcceptationInvitationForm
 from acces.models import Affectation, Invitation
+from audit.models import Action, journaliser
 
 
 def _verrouiller(invitation):
@@ -22,6 +23,7 @@ def _affecter(invitation, utilisateur):
     )
     invitation.utilisee_le = timezone.now()
     invitation.save(update_fields=["utilisee_le"])
+    journaliser(Action.INVITATION_ACCEPTEE, acteur=utilisateur, objet=invitation, role=invitation.role)
 
 
 @public

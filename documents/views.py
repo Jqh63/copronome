@@ -1,7 +1,9 @@
+from django.db import transaction
 from django.http import FileResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
 from acces.droits import ECRIRE, LIRE, batiments_visibles, exige, filtre_documents, verifier
+from audit.models import Action, journaliser
 from documents.forms import DocumentForm
 from documents.models import Categorie, Document
 
@@ -30,7 +32,16 @@ def deposer(request):
         document = form.save(commit=False)
         verifier(request.user, ECRIRE, "documents", document)
         document.depose_par = request.user
-        document.save()
+        with transaction.atomic():
+            document.save()
+            journaliser(
+                Action.DOCUMENT_DEPOSE,
+                acteur=request.user,
+                objet=document,
+                empreinte=document.empreinte,
+                categorie=document.categorie,
+                visibilite=document.visibilite,
+            )
         return redirect("documents:liste")
     return render(request, "documents/deposer.html", {"form": form}, status=400 if form.errors else 200)
 
