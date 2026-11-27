@@ -28,7 +28,7 @@ $$;
 def poser(apps, schema_editor):
     if schema_editor.connection.vendor != "postgresql":
         return
-    schema_editor.execute(FONCTION)
+    schema_editor.execute(FONCTION, params=None)  # pas de %-formatage : le RAISE contient des %
     for table in TABLES:
         schema_editor.execute(
             f"CREATE TRIGGER ajout_seul BEFORE UPDATE OR DELETE ON {table} "
