@@ -194,7 +194,8 @@ if not DEBUG:
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
-    "handlers": {"console": {"class": "logging.StreamHandler"}},
+    "filters": {"masque_jetons": {"()": "copronome.journal.MasqueJetons"}},
+    "handlers": {"console": {"class": "logging.StreamHandler", "filters": ["masque_jetons"]}},
     "root": {"handlers": ["console"], "level": env("LOG_LEVEL", "INFO")},
 }
 
