@@ -13,3 +13,19 @@ updates:
     directory: /
     schedule:
       interval: weekly
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+    ignore:
+      # Même Python que la CI : la montée de version mineure se fait à la main.
+      - dependency-name: python
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+  - package-ecosystem: docker-compose
+    directory: /
+    schedule:
+      interval: weekly
+    ignore:
+      # Une version majeure de Postgres impose une migration des données.
+      - dependency-name: postgres
+        update-types: ["version-update:semver-major"]
