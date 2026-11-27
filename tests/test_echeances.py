@@ -2,6 +2,7 @@
 idempotents et bornés au périmètre, droits rôle par rôle."""
 
 import datetime
+import re
 
 import pytest
 from django.core import mail
@@ -12,6 +13,7 @@ from django.utils import timezone
 
 from acces.models import Role
 from copro.models import Batiment
+from echeances.controles_types import CONTROLES_TYPES
 from echeances.models import Echeance, Realisation, ajouter_mois, realiser
 from tests.test_acces import _compte
 
@@ -180,3 +182,33 @@ def test_creation_puis_realisation_par_l_interface(client, demo):
     client.post(reverse("echeances:realiser", args=[echeance.pk]), {"realisee_le": "2026-11-01"})
     echeance.refresh_from_db()
     assert not echeance.active
+
+
+# Bibliothèque de contrôles types : chaque modèle porte sa source officielle.
+SOURCE_OFFICIELLE = re.compile(r"service-public\.gouv\.fr F\d+|CCH art\. [LR]\d|Loi 65-557 art\.")
+
+
+def test_controles_types_sources_et_valeurs():
+    codes = [controle.code for controle in CONTROLES_TYPES]
+    assert len(codes) == len(set(codes))
+    for controle in CONTROLES_TYPES:
+        assert SOURCE_OFFICIELLE.search(controle.reference), controle.code
+        assert controle.type in Echeance.Type.values
+        assert controle.periodicite_mois > 0
+        Echeance(**controle.initial(), prochaine_le=timezone.localdate()).full_clean()
+
+
+def test_modele_pre_remplit_sans_rien_creer(client, demo):
+    client.force_login(_compte("cs@example.org", Role.MEMBRE_CS))
+    reponse = client.get(reverse("echeances:creer"), {"modele": "dpe-collectif"})
+    assert reponse.status_code == 200
+    initial = reponse.context["form"].initial
+    assert initial["periodicite_mois"] == 120 and "L126-31" in initial["reference"]
+    assert "prochaine_le" not in initial
+    assert not Echeance.objects.exists()
+    assert client.get(reverse("echeances:creer"), {"modele": "inconnu"}).status_code == 404
+
+
+def test_modele_reserve_a_qui_peut_ecrire(client, demo):
+    client.force_login(_compte("copro@example.org", Role.COPROPRIETAIRE))
+    assert client.get(reverse("echeances:creer"), {"modele": "pppt"}).status_code == 403

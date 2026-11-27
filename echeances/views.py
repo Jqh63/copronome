@@ -1,7 +1,9 @@
+from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
 from acces.droits import ECRIRE, LIRE, batiments_visibles, exige, verifier
+from echeances.controles_types import CONTROLES_TYPES, PAR_CODE
 from echeances.forms import EcheanceForm, RealisationForm
 from echeances.models import Echeance, realiser
 
@@ -47,15 +49,25 @@ def detail(request, pk):
 
 @exige(ECRIRE, "echeances")
 def creer(request):
+    modele = request.GET.get("modele")
+    if modele and modele not in PAR_CODE:
+        raise Http404("Contrôle type inconnu.")
     form = EcheanceForm(
-        request.POST or None, batiments_visibles=batiments_visibles(request.user, ECRIRE, "echeances")
+        request.POST or None,
+        initial=PAR_CODE[modele].initial() if modele else None,
+        batiments_visibles=batiments_visibles(request.user, ECRIRE, "echeances"),
     )
     if request.method == "POST" and form.is_valid():
         echeance = form.save(commit=False)
         verifier(request.user, ECRIRE, "echeances", echeance)
         echeance.save()
         return redirect("echeances:detail", pk=echeance.pk)
-    return render(request, "echeances/creer.html", {"form": form}, status=400 if form.errors else 200)
+    return render(
+        request,
+        "echeances/creer.html",
+        {"form": form, "controles_types": CONTROLES_TYPES, "modele": modele},
+        status=400 if form.errors else 200,
+    )
 
 
 @exige(ECRIRE, "echeances")
