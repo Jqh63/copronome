@@ -25,6 +25,16 @@ Copronome ne rend jamais obligatoire un accès numérique : tout document se gé
 
 Python / Django, Postgres, htmx, Caddy, déploiement par Docker Compose.
 
+## Contribuer : aucun secret, aucune donnée réelle
+
+Avant le premier commit, dans votre clone :
+
+```bash
+git config core.hooksPath .githooks   # active le contrôle avant commit
+```
+
+Le hook refuse un commit qui contient un secret, un IBAN, un numéro de téléphone ou une adresse mail hors domaines fictifs (`.gitleaks.toml`, avec [gitleaks](https://github.com/gitleaks/gitleaks) installé). Il vérifie aussi les termes privés de votre copropriété (nom, adresse, noms des personnes), listés un par ligne **hors du dépôt**, dans `~/.config/copronome/termes-prives.txt`. La CI rejoue le même scan sur chaque PR.
+
 ## Licence
 
 [AGPL-3.0](LICENSE) : si vous proposez une version modifiée de Copronome en service à d'autres personnes, vous devez en publier le code source.

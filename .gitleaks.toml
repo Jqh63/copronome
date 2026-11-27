@@ -1,0 +1,39 @@
+# Scan de secrets ET de données personnelles. Joué par le hook pre-commit
+# (.githooks/pre-commit) et par la CI (.github/workflows/secrets.yml).
+# Les données de démonstration utilisent uniquement les valeurs fictives
+# autorisées ci-dessous.
+
+title = "copronome"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "iban-fr"
+description = "IBAN français (donnée bancaire réelle probable)"
+regex = '''\bFR\d{2}(?:[ ]?[0-9A-Z]{4}){5}[ ]?[0-9A-Z]{3}\b'''
+keywords = ["fr"]
+  [[rules.allowlists]]
+  description = "IBAN fictif des données de démonstration"
+  regexes = ['''FR76[ ]?3000[ ]?6000[ ]?0112[ ]?3456[ ]?7890[ ]?189''']
+
+[[rules]]
+id = "telephone-fr"
+description = "Numéro de téléphone français"
+regex = '''(?:\+33[ .]?|\b0)[1-9](?:[ .-]?\d{2}){4}\b'''
+  [[rules.allowlists]]
+  description = "Numéros fictifs des données de démonstration (finissent par 00 00 00 00)"
+  regexes = ['''(?:\+33[ .]?|0)[1-9](?:[ .-]?00){4}''']
+
+[[rules]]
+id = "adresse-mail"
+description = "Adresse mail hors domaines fictifs"
+regex = '''[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}'''
+keywords = ["@"]
+  [[rules.allowlists]]
+  description = "Domaines fictifs ou du projet"
+  regexes = ['''@(?:[A-Za-z0-9-]+\.)*(?:example\.(?:org|com|net|fr)|localhost|users\.noreply\.github\.com|copronome\.(?:fr|org))\b''']
+
+[[allowlists]]
+description = "Texte de la licence"
+paths = ['''^LICENSE$''']
