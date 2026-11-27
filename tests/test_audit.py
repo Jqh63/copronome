@@ -63,6 +63,9 @@ def test_postgres_refuse_update_delete_truncate(table, requete):
         # Noms de table = constantes du paramétrage, jamais une saisie.
         curseur.execute(f"SELECT count(*) FROM {table}")  # noqa: S608
         assert curseur.fetchone()[0] > 0
+        # Clés étrangères différées : sans ceci, TRUNCATE serait refusé pour
+        # « pending trigger events » et non par le trigger d'ajout seul.
+        curseur.execute("SET CONSTRAINTS ALL IMMEDIATE")
         with pytest.raises(DatabaseError, match="ajout seul"):
             with transaction.atomic():
                 curseur.execute(requete.format(t=table))
