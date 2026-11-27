@@ -116,6 +116,11 @@ CACHES = {
     "default": {"BACKEND": "django.core.cache.backends.db.DatabaseCache", "LOCATION": "cache_copronome"}
 }
 
+# IP du client pour le rate limit d'allauth : derrière Caddy, REMOTE_ADDR est
+# celle du proxy (tous les clients partageraient une limite). Nombre de proxys
+# de confiance devant l'app : 1 avec le compose.yaml fourni, 0 sans proxy.
+ALLAUTH_TRUSTED_PROXY_COUNT = int(env("TRUSTED_PROXY_COUNT", "0"))
+
 AUTHENTICATION_BACKENDS = ["allauth.account.auth_backends.AuthenticationBackend"]
 LOGIN_URL = "/compte/login/"
 LOGIN_REDIRECT_URL = "/"
@@ -189,7 +194,8 @@ if not DEBUG:
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
-    "handlers": {"console": {"class": "logging.StreamHandler"}},
+    "filters": {"masque_jetons": {"()": "copronome.journal.MasqueJetons"}},
+    "handlers": {"console": {"class": "logging.StreamHandler", "filters": ["masque_jetons"]}},
     "root": {"handlers": ["console"], "level": env("LOG_LEVEL", "INFO")},
 }
 

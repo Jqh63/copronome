@@ -37,6 +37,21 @@ COPRONOME_DEBUG=1 .venv/bin/python manage.py runserver
 
 En production, la configuration se lit dans les variables `COPRONOME_*` (modèle : `.env.example`).
 
+## Lancer avec Docker Compose
+
+`compose.yaml` démarre l'app (gunicorn), Postgres, Caddy (TLS, fichiers statiques) et les rappels d'échéances quotidiens. Seul Caddy est publié ; la base n'a aucune sortie réseau.
+
+```bash
+# .env à côté de compose.yaml (jamais versionné), au minimum :
+#   COPRONOME_SECRET_KEY=<clé longue et aléatoire>
+#   COPRONOME_DB_PASSWORD=<mot de passe de la base>
+docker compose up -d --build                  # https://localhost:8443 (CA interne de Caddy)
+docker compose run --rm app inviter ...       # toute commande manage.py
+docker/essai-conteneurs.sh                    # essai de bout en bout (rejoué en CI)
+```
+
+Variables propres au déploiement (défaut entre parenthèses) : `COPRONOME_DOMAINE` (`localhost`), `COPRONOME_URL_PUBLIQUE` (`https://localhost:8443`), `COPRONOME_PORT_HTTPS` (`8443`), `COPRONOME_CORPS_MAX_MO` (`21`, limite de corps de Caddy, à garder au-dessus de `COPRONOME_DOCUMENT_TAILLE_MAX_MO`), `COPRONOME_RAPPELS_INTERVALLE` (`86400` secondes), `COPRONOME_TRUSTED_PROXY_COUNT` (`1` derrière Caddy : IP du client pour la limite de tentatives de connexion). Le journal d'accès de Caddy masque les jetons des URL (iCal, invitation, réinitialisation, confirmation) ; gunicorn n'en écrit pas.
+
 ## Contribuer : aucun secret, aucune donnée réelle
 
 Avant le premier commit, dans votre clone :
