@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block titre %}Journal d'audit — Copronome{% endblock %}
+{% block contenu %}
+<h1>Journal d'audit</h1>
+<p>Qui a fait quoi, et quand. Le journal ne se modifie pas et ne s'efface pas.</p>
+<form method="get">{{ form.as_p }}<button type="submit">Filtrer</button></form>
+<p><a href="{% url 'audit:exporter' %}{% if parametres %}?{{ parametres }}{% endif %}">Exporter en CSV</a> (l'export est lui-même noté au journal)</p>
+<table>
+  <thead><tr><th>Date</th><th>Qui</th><th>Action</th><th>Objet</th><th>Détail</th></tr></thead>
+  <tbody>
+  {% for entree in page %}
+    <tr>
+      <td>{{ entree.cree_le|date:"d/m/Y H:i:s" }}</td>
+      <td>{{ entree.acteur_nom|default:"—" }}</td>
+      <td>{{ entree.get_action_display }}</td>
+      <td>{{ entree.objet_libelle }}</td>
+      <td>{% for cle, valeur in entree.detail.items %}{{ cle }} : {{ valeur }}{% if not forloop.last %} · {% endif %}{% endfor %}</td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="5">Aucune entrée.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% if page.paginator.num_pages > 1 %}
+<nav aria-label="Pages">
+  {% if page.has_previous %}<a href="?{% if parametres %}{{ parametres }}&amp;{% endif %}page={{ page.previous_page_number }}">Précédente</a>{% endif %}
+  Page {{ page.number }} sur {{ page.paginator.num_pages }}
+  {% if page.has_next %}<a href="?{% if parametres %}{{ parametres }}&amp;{% endif %}page={{ page.next_page_number }}">Suivante</a>{% endif %}
+</nav>
+{% endif %}
+{% endblock %}

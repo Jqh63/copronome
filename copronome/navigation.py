@@ -16,6 +16,7 @@ ENTREES = (
     ("Documents", "documents:liste"),
     ("Échéances", "echeances:liste"),
     ("Agenda", "agenda:liste"),
+    ("Journal", "audit:journal"),
 )
 
 
