@@ -5,7 +5,8 @@
 #   web      fichiers statiques, puis gunicorn (rôle Postgres restreint)
 #   rappels  `envoyer_rappels` au démarrage puis toutes les
 #            COPRONOME_RAPPELS_INTERVALLE secondes (la commande est idempotente
-#            dans la journée) ; une ligne horodatée par passe = signe de vie
+#            dans la journée), puis `purger_anciens --appliquer` (copro.purge) ;
+#            une ligne horodatée par passe = signe de vie
 #   sante    sonde de la healthcheck (GET /sante/ en local)
 #   autre    passé tel quel à manage.py (ex. `inviter`, `charger_demo`)
 # gunicorn n'écrit aucun journal d'accès : les URL portent des jetons (iCal,
@@ -29,7 +30,8 @@ web)
 rappels)
     intervalle="${COPRONOME_RAPPELS_INTERVALLE:-86400}"
     while :; do
-        if python manage.py envoyer_rappels --url "${COPRONOME_URL_PUBLIQUE:-}"; then
+        if python manage.py envoyer_rappels --url "${COPRONOME_URL_PUBLIQUE:-}" &&
+            python manage.py purger_anciens --appliquer; then
             echo "$(date -Iseconds) rappels : passe terminée"
         else
             echo "$(date -Iseconds) rappels : ECHEC de la passe" >&2

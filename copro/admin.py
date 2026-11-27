@@ -69,6 +69,6 @@ class CleRepartitionAdmin(admin.ModelAdmin):
 
 @admin.register(Personne)
 class PersonneAdmin(admin.ModelAdmin):
-    list_display = ["nom", "prenom", "type", "email"]
-    list_filter = ["type"]
+    list_display = ["nom", "prenom", "type", "email", "efface_le"]
+    list_filter = ["type", ("efface_le", admin.EmptyFieldListFilter)]
     search_fields = ["nom", "prenom", "email"]
