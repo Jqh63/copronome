@@ -1,6 +1,8 @@
 #!/bin/sh
 # Démarrage du conteneur Copronome. Rôles :
-#   web      migrations, table de cache, fichiers statiques, puis gunicorn
+#   migrer   (rôle Postgres propriétaire, service ponctuel) migrations, table
+#            de cache, rôle restreint de l'app et ses droits
+#   web      fichiers statiques, puis gunicorn (rôle Postgres restreint)
 #   rappels  `envoyer_rappels` au démarrage puis toutes les
 #            COPRONOME_RAPPELS_INTERVALLE secondes (la commande est idempotente
 #            dans la journée) ; une ligne horodatée par passe = signe de vie
@@ -11,9 +13,12 @@
 set -eu
 
 case "${1:-web}" in
-web)
+migrer)
     python manage.py migrate --noinput
     python manage.py createcachetable
+    exec python manage.py appliquer_droits_base
+    ;;
+web)
     python manage.py collectstatic --noinput --clear --verbosity 0
     exec gunicorn copronome.wsgi:application \
         --bind 0.0.0.0:8000 \

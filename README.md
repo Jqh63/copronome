@@ -39,12 +39,13 @@ En production, la configuration se lit dans les variables `COPRONOME_*` (modèle
 
 ## Lancer avec Docker Compose
 
-`compose.yaml` démarre l'app (gunicorn), Postgres, Caddy (TLS, fichiers statiques) et les rappels d'échéances quotidiens. Seul Caddy est publié ; la base n'a aucune sortie réseau.
+`compose.yaml` démarre l'app (gunicorn), Postgres, Caddy (TLS, fichiers statiques) et les rappels d'échéances quotidiens. Seul Caddy est publié ; la base n'a aucune sortie réseau. Un service ponctuel `migrer` applique les migrations sous le rôle Postgres propriétaire, puis crée le rôle restreint de l'app (`manage.py appliquer_droits_base`) : ni superutilisateur ni propriétaire, sans UPDATE ni DELETE sur les journaux (audit, incidents, échéances), qu'un trigger protège aussi.
 
 ```bash
 # .env à côté de compose.yaml (jamais versionné), au minimum :
 #   COPRONOME_SECRET_KEY=<clé longue et aléatoire>
-#   COPRONOME_DB_PASSWORD=<mot de passe de la base>
+#   COPRONOME_DB_PASSWORD=<mot de passe du rôle propriétaire de la base>
+#   COPRONOME_DB_APP_PASSWORD=<mot de passe du rôle de l'app>
 docker compose up -d --build                  # https://localhost:8443 (CA interne de Caddy)
 docker compose run --rm app inviter ...       # toute commande manage.py
 docker/essai-conteneurs.sh                    # essai de bout en bout (rejoué en CI)
