@@ -132,6 +132,8 @@ ACCOUNT_LOGIN_METHODS = {"email"}
 ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
 ACCOUNT_EMAIL_VERIFICATION = "mandatory"
 ACCOUNT_PREVENT_ENUMERATION = True
+# Le mail « compte inconnu » propose de s'inscrire : l'inscription est fermée.
+ACCOUNT_EMAIL_UNKNOWN_ACCOUNTS = False
 ACCOUNT_LOGOUT_ON_PASSWORD_CHANGE = True
 ACCOUNT_LOGIN_ON_PASSWORD_RESET = False
 
