@@ -1,6 +1,6 @@
 # Copronome en local ou sur un serveur : app (gunicorn), Postgres, Caddy,
 # rappels quotidiens. Configuration par .env à côté de ce fichier (modèle :
-# .env.example) ; les deux secrets sont obligatoires, compose refuse sinon.
+# env.exemple) ; les deux secrets sont obligatoires, compose refuse sinon.
 #   docker compose up -d --build
 #   docker compose run --rm app inviter ...      (commandes manage.py)
 # Images tierces épinglées par digest ; seul Caddy est publié, l'app et la
@@ -31,6 +31,7 @@ x-app: &app
     COPRONOME_EMAIL_USER: ${COPRONOME_EMAIL_USER:-}
     COPRONOME_EMAIL_PASSWORD: ${COPRONOME_EMAIL_PASSWORD:-}
     COPRONOME_RAPPELS_INTERVALLE: ${COPRONOME_RAPPELS_INTERVALLE:-86400}
+    COPRONOME_GUNICORN_WORKERS: ${COPRONOME_GUNICORN_WORKERS:-2}
   networks: [base, web]
 
 services:

@@ -13,3 +13,4 @@ staticfiles
 *.sqlite3
 *.dump
 .pytest_cache
+env.exemple

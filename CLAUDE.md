@@ -5,7 +5,7 @@
 ## Règles non négociables
 
 1. **Aucune donnée réelle** dans le code, les fixtures, les tests, les commits ou les PR : ni nom ou adresse de la copropriété, ni nom de copropriétaire, ni IBAN, téléphone ou mail réel. Données de démonstration **fictives** uniquement (domaines `example.org`, téléphones en `00 00 00 00`, IBAN fictif de `.gitleaks.toml`).
-2. **Aucun secret** dans le dépôt : configuration par variables `COPRONOME_*` (`.env.example` pour les noms, `.env` jamais versionné). Le hook pre-commit (gitleaks + termes privés hors dépôt) et la CI le vérifient ; un refus ne se contourne pas (`--no-verify` interdit), il se corrige.
+2. **Aucun secret** dans le dépôt : configuration par variables `COPRONOME_*` (`env.exemple` pour les noms, `.env` jamais versionné). Le hook pre-commit (gitleaks + termes privés hors dépôt) et la CI le vérifient ; un refus ne se contourne pas (`--no-verify` interdit), il se corrige.
 3. **Pas de force-push**, jamais. `main` est protégée par un ruleset (PR obligatoire, checks requis, aucun contournement).
 4. **Identité git noreply** : `Jqh63 <12471916+Jqh63@users.noreply.github.com>`.
 5. **Ne pas modifier `CLAUDE.md` sans demande explicite** de Yann.

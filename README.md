@@ -35,7 +35,7 @@ COPRONOME_DEBUG=1 .venv/bin/python manage.py migrate
 COPRONOME_DEBUG=1 .venv/bin/python manage.py runserver
 ```
 
-En production, la configuration se lit dans les variables `COPRONOME_*` (modèle : `.env.example`).
+En production, la configuration se lit dans les variables `COPRONOME_*` (modèle : `env.exemple`).
 
 ## Lancer avec Docker Compose
 
@@ -50,7 +50,7 @@ docker compose run --rm app inviter ...       # toute commande manage.py
 docker/essai-conteneurs.sh                    # essai de bout en bout (rejoué en CI)
 ```
 
-Variables propres au déploiement (défaut entre parenthèses) : `COPRONOME_DOMAINE` (`localhost`), `COPRONOME_URL_PUBLIQUE` (`https://localhost:8443`), `COPRONOME_PORT_HTTPS` (`8443`), `COPRONOME_CORPS_MAX_MO` (`21`, limite de corps de Caddy, à garder au-dessus de `COPRONOME_DOCUMENT_TAILLE_MAX_MO`), `COPRONOME_RAPPELS_INTERVALLE` (`86400` secondes), `COPRONOME_TRUSTED_PROXY_COUNT` (`1` derrière Caddy : IP du client pour la limite de tentatives de connexion). Le journal d'accès de Caddy masque les jetons des URL (iCal, invitation, réinitialisation, confirmation) ; gunicorn n'en écrit pas.
+Variables propres au déploiement (défaut entre parenthèses) : `COPRONOME_DOMAINE` (`localhost`), `COPRONOME_URL_PUBLIQUE` (`https://localhost:8443`), `COPRONOME_PORT_HTTPS` (`8443`), `COPRONOME_CORPS_MAX_MO` (`21`, limite de corps de Caddy, à garder au-dessus de `COPRONOME_DOCUMENT_TAILLE_MAX_MO`), `COPRONOME_RAPPELS_INTERVALLE` (`86400` secondes), `COPRONOME_GUNICORN_WORKERS` (`2`), `COPRONOME_TRUSTED_PROXY_COUNT` (`1` derrière Caddy : IP du client pour la limite de tentatives de connexion). Le journal d'accès de Caddy masque les jetons des URL (iCal, invitation, réinitialisation, confirmation) ; gunicorn n'en écrit pas.
 
 ## Contribuer : aucun secret, aucune donnée réelle
 

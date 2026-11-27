@@ -2,7 +2,7 @@
 
 Une instance = une copropriété : rien de propre à une copropriété n'est
 écrit ici. Les valeurs viennent des variables COPRONOME_* (voir
-.env.example). Sans COPRONOME_DEBUG=1, la clé secrète et les hôtes
+env.exemple). Sans COPRONOME_DEBUG=1, la clé secrète et les hôtes
 autorisés sont obligatoires : l'app refuse de démarrer plutôt que de
 tourner avec un défaut faible.
 """
