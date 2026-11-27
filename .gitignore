@@ -1,0 +1,30 @@
+# Secrets et configuration locale
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Données réelles : jamais dans le dépôt
+/data/
+/media/
+/backups/
+*.sqlite3
+*.dump
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.coverage
+htmlcov/
+build/
+dist/
+*.egg-info/
+
+# Éditeurs et système
+.vscode/
+.idea/
+.DS_Store
