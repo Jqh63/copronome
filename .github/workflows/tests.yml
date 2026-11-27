@@ -1,0 +1,50 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        # postgres:17-alpine, épinglée par digest
+        image: postgres@sha256:f9cf3e1f0066f0eb0c48707d864f0ac5941e9ff454a072077d97a4d278d07d73
+        env:
+          POSTGRES_USER: copronome
+          POSTGRES_PASSWORD: copronome-ci
+          POSTGRES_DB: copronome
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U copronome" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      COPRONOME_DB_ENGINE: postgres
+      COPRONOME_DB_PASSWORD: copronome-ci
+      COPRONOME_DB_HOST: localhost
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Dépendances (empreintes vérifiées)
+        run: pip install --require-hashes -r requirements.txt -r requirements-dev.txt
+      - name: Style
+        run: ruff check . && ruff format --check .
+      - name: Migrations à jour
+        run: python manage.py makemigrations --check --dry-run --settings=copronome.settings_test
+      - name: Tests (Postgres)
+        run: pytest -q
+      - name: Contrôle de déploiement
+        env:
+          COPRONOME_DB_ENGINE: sqlite
+          COPRONOME_ALLOWED_HOSTS: copro.example.org
+        run: |
+          COPRONOME_SECRET_KEY="$(python -c 'import secrets; print(secrets.token_urlsafe(50))')" \
+            python manage.py check --deploy --fail-level WARNING
+      - name: Failles connues des dépendances
+        run: pip-audit -r requirements.txt --require-hashes --disable-pip
