@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     "allauth.mfa",
     "copro",
     "acces",
+    "incidents",
 ]
 
 MIDDLEWARE = [

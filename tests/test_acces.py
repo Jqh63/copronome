@@ -18,7 +18,7 @@ from copro.models import Batiment, Lot
 pytestmark = pytest.mark.django_db
 
 # Modules de l'app : toute vue qui en vient doit être marquée par `exige` ou `public`.
-MODULES_APP = ("copronome.", "copro.", "acces.")
+MODULES_APP = ("copronome.", "copro.", "acces.", "incidents.")
 
 
 def _routes(resolver=None, prefixe=""):
@@ -114,7 +114,9 @@ def test_droit_inconnu_leve_une_erreur():
 
 
 # Second facteur obligatoire : chaque route de l'app, requêtes htmx comprises.
-ROUTES_SANS_ARGUMENT = [r for r, v in _routes() if r.startswith(("lots/",)) or r == ""]
+ROUTES_SANS_ARGUMENT = sorted(
+    r for r, v in _routes() if v.__module__.startswith(MODULES_APP) and "<" not in r and r != "sante/"
+)
 
 
 @pytest.mark.parametrize("route", ROUTES_SANS_ARGUMENT)
