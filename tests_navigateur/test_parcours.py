@@ -62,9 +62,6 @@ def test_invitation_totp_incident_puis_reconnexion(page):
     page.wait_for_url("**/compte/2fa/")
 
     page.get_by_role("link", name="Activer").click()
-    if "/reauthenticate/" in page.url:  # cf. constat dans le BACKLOG
-        page.locator("#id_password").fill(MOT_DE_PASSE)
-        page.get_by_role("button", name="Confirmer").click()
     page.wait_for_url("**/2fa/totp/activate/")
     secret = page.locator("#authenticator_secret").input_value()
     pas_activation = int(time.time() // 30)

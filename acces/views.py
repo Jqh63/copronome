@@ -1,3 +1,4 @@
+from allauth.account.internal.flows.login import record_authentication
 from allauth.account.models import EmailAddress
 from django.contrib import messages
 from django.contrib.auth import get_user_model, login
@@ -62,5 +63,10 @@ def accepter_invitation(request, jeton):
             EmailAddress.objects.create(user=utilisateur, email=invitation.email, verified=True, primary=True)
             _affecter(invitation, utilisateur)
         login(request, utilisateur, backend="allauth.account.auth_backends.AuthenticationBackend")
+        # Le mot de passe vient d'être saisi dans cette requête : preuve aussi
+        # fraîche que la page « Confirmer l'accès » d'allauth, qui sinon le
+        # redemande avant l'activation du second facteur. Même enregistrement
+        # qu'elle, donc même borne (ACCOUNT_REAUTHENTICATION_TIMEOUT).
+        record_authentication(request, utilisateur, method="password", reauthenticated=True)
         return redirect("accueil")
     return render(request, "acces/invitation.html", {"invitation": invitation, "form": form})
