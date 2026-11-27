@@ -10,6 +10,7 @@ import struct
 import time
 
 import pytest
+from allauth.mfa.models import Authenticator
 from django.core.management import call_command
 
 from acces.models import Invitation, Role
@@ -97,3 +98,53 @@ def test_invitation_totp_incident_puis_reconnexion(page):
         Action.CONNEXION,
         Action.DECONNEXION,
     } <= actions
+
+
+def _authentificateur_virtuel(page):
+    """Clé d'accès simulée par Chromium (CDP WebAuthn) : résidente, avec
+    vérification de l'utilisateur, comme un téléphone ou Windows Hello."""
+    cdp = page.context.new_cdp_session(page)
+    cdp.send("WebAuthn.enable")
+    cdp.send(
+        "WebAuthn.addVirtualAuthenticator",
+        {
+            "options": {
+                "protocol": "ctap2",
+                "transport": "internal",
+                "hasResidentKey": True,
+                "hasUserVerification": True,
+                "isUserVerified": True,
+            }
+        },
+    )
+
+
+def test_invitation_passkey_puis_connexion_par_cle(page):
+    _authentificateur_virtuel(page)
+    _accepter_invitation(page)
+    page.wait_for_url("**/compte/2fa/")
+
+    page.get_by_role("link", name="Ajouter").click()
+    page.wait_for_url("**/2fa/webauthn/add/")
+    page.locator("#id_name").fill("Téléphone")
+    page.locator("#id_passwordless").check()
+    page.locator("#mfa_webauthn_add").click()
+    page.wait_for_url("**/2fa/recovery-codes/")
+    assert Authenticator.objects.filter(user__email=EMAIL, type=Authenticator.Type.WEBAUTHN).exists()
+
+    _creer_incident(page, "Porte de garage — essai passkey")
+
+    # Déconnexion, puis connexion par la seule clé d'accès : ni identifiant
+    # ni mot de passe saisis.
+    page.goto("/compte/logout/")
+    page.get_by_role("button", name="Se déconnecter").click()
+    page.wait_for_load_state()
+    page.goto("/compte/login/")
+    page.get_by_role("button", name="Se connecter avec une clé d'accès").click()
+    page.wait_for_url(lambda url: "/compte/" not in url)
+    page.goto("/incidents/")
+    assert page.get_by_text("Porte de garage — essai passkey").is_visible()
+
+    connexions = JournalAudit.objects.filter(action=Action.CONNEXION).count()
+    assert connexions >= 2, "création du compte puis connexion par clé"
+    assert JournalAudit.objects.filter(action=Action.SECOND_FACTEUR_AJOUTE).exists()
