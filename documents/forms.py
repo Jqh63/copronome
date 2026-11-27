@@ -2,6 +2,7 @@ import os
 
 from django import forms
 from django.conf import settings
+from django.db import models
 from django.template.defaultfilters import filesizeformat
 
 from documents.models import Document, empreinte_sha256, volume_occupe
@@ -34,8 +35,11 @@ class DocumentForm(forms.ModelForm):
 
     class Meta:
         model = Document
-        fields = ["titre", "categorie", "visibilite", "batiment", "date_document"]
-        widgets = {"date_document": forms.DateInput(attrs={"type": "date"})}
+        fields = ["titre", "categorie", "visibilite", "batiment", "date_document", "valide_jusquau"]
+        widgets = {
+            "date_document": forms.DateInput(attrs={"type": "date"}),
+            "valide_jusquau": forms.DateInput(attrs={"type": "date"}),
+        }
 
     def __init__(self, *args, batiments_visibles=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -69,6 +73,11 @@ class RemplacementForm(forms.Form):
         widget=forms.DateInput(attrs={"type": "date"}),
         help_text="Date portée par le document",
     )
+    valide_jusquau = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={"type": "date"}),
+        help_text="Fin de validité ou d'effet, si elle change",
+    )
 
     def clean_fichier(self):
         fichier = self.cleaned_data["fichier"]
@@ -76,7 +85,14 @@ class RemplacementForm(forms.Form):
         return fichier
 
 
+class RaisonRetrait(models.TextChoices):
+    FIN = "fin", "Fin de la durée de conservation"
+    ERREUR = "erreur", "Déposé par erreur (dans les 48 h, document sans version précédente)"
+    EFFACEMENT = "effacement", "Effacement imposé (RGPD, décision de justice)"
+
+
 class RetraitForm(forms.Form):
+    raison = forms.ChoiceField(choices=RaisonRetrait.choices, widget=forms.RadioSelect)
     motif = forms.CharField(
         max_length=500,
         widget=forms.Textarea(attrs={"rows": 3}),

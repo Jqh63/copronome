@@ -73,6 +73,11 @@ class Document(models.Model):
         Batiment, null=True, blank=True, on_delete=models.PROTECT, help_text="Vide = toute la copropriété"
     )
     date_document = models.DateField(null=True, blank=True, help_text="Date portée par le document")
+    valide_jusquau = models.DateField(
+        null=True,
+        blank=True,
+        help_text="Fin de validité ou d'effet (fin du contrat, réception des travaux)",
+    )
     fichier = models.FileField(upload_to=_chemin, editable=False)
     nom_origine = models.CharField(max_length=200, editable=False)
     type_mime = models.CharField(max_length=100, editable=False)

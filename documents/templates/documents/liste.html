@@ -12,7 +12,7 @@
   <button type="submit">Filtrer</button>
 </form>
 <table>
-  <thead><tr><th>Document</th><th>Catégorie</th><th>Lieu</th><th>Visible par</th><th>Taille</th><th>Déposé le</th><th></th></tr></thead>
+  <thead><tr><th>Document</th><th>Catégorie</th><th>Lieu</th><th>Visible par</th><th>Taille</th><th>Déposé le</th><th>Conservation</th><th></th></tr></thead>
   <tbody>
   {% for document in documents %}
     <tr>
@@ -23,10 +23,11 @@
       <td>{{ document.get_visibilite_display }}</td>
       <td>{{ document.taille|filesizeformat }}</td>
       <td>{{ document.depose_le|date:"d/m/Y" }}</td>
+      <td title="{{ document.conservation.regle.justification }}">{{ document.conservation.libelle }}</td>
       <td>{% if document.modifiable %}<a href="{% url 'documents:remplacer' document.pk %}">Remplacer</a> · <a href="{% url 'documents:retirer' document.pk %}">Retirer</a>{% endif %}</td>
     </tr>
   {% empty %}
-    <tr><td colspan="7">Aucun document.</td></tr>
+    <tr><td colspan="8">Aucun document.</td></tr>
   {% endfor %}
   </tbody>
 </table>
