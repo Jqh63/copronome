@@ -17,9 +17,17 @@ principes de code). Lecture du 2026-11-27 :
   « nouvelle évaluation […] dans un délai maximal de 3 ans » (CSP R1334-14 à
   R1334-29-9 cités, article précis non lu).
 
-Écartés faute de source officielle lue : ascenseur (entretien, contrôle
-technique), ramonage, portes de garage, extincteurs. Le conseil syndical les
-saisit lui-même, avec son contrat ou son texte.
+- Ascenseur, contrôle technique : service-public F10538 (vérifiée le
+  2026-05-15), « tous les 5 ans » ; références CCH R134-6 à R134-13, article
+  précis non lu. La visite d'entretien toutes les 6 semaines relève du contrat
+  de l'ascensoriste, pas d'une échéance du CS.
+- Ramonage : CSP R1331-71 (en vigueur depuis le 2023-10-01, lu sur
+  Légifrance), « au moins tous les douze mois » ; appareils collectifs « au
+  moins tous les six mois, dont une fois pendant la période de chauffe » ; un
+  arrêté local peut en imposer plus.
+
+Écartés faute de source officielle lue : portes de garage, extincteurs. Le
+conseil syndical les saisit lui-même, avec son contrat ou son texte.
 
 Un modèle ne crée rien : la date de la prochaine échéance dépend de la
 copropriété (dernier diagnostic, date de l'AG) et reste saisie par le CS.
@@ -98,6 +106,40 @@ CONTROLES_TYPES = (
         notes=(
             "Seulement si le dossier technique amiante classe des matériaux de la liste A "
             "en surveillance périodique. Aucune périodicité fixée pour la liste B."
+        ),
+    ),
+    ControleType(
+        code="ascenseur-controle-technique",
+        titre="Ascenseur : contrôle technique",
+        type=Echeance.Type.CONTROLE,
+        periodicite_mois=60,
+        reference="service-public.gouv.fr F10538 (CCH art. R134-6 à R134-13)",
+        notes=(
+            "Une échéance par ascenseur. Prévenir les occupants par affichage sur la porte "
+            "quelques jours avant le contrôle."
+        ),
+    ),
+    ControleType(
+        code="ramonage",
+        titre="Ramonage des conduits de fumée",
+        type=Echeance.Type.CONTROLE,
+        periodicite_mois=12,
+        reference="CSP art. R1331-71",
+        notes=(
+            "Conduits et tuyaux de raccordement des appareils individuels. "
+            "Un arrêté local peut imposer plusieurs ramonages par an, dont un pendant la période de chauffe."
+        ),
+    ),
+    ControleType(
+        code="ramonage-collectif",
+        titre="Ramonage des conduits d'appareils collectifs",
+        type=Echeance.Type.CONTROLE,
+        periodicite_mois=6,
+        reference="CSP art. R1331-71",
+        notes=(
+            "Dont une fois pendant la période de chauffe. Tous les douze mois si l'appareil "
+            "ne brûle que du gaz et que le conduit n'a jamais servi à un combustible solide "
+            "ou liquide (ou a été ramoné avant le changement)."
         ),
     ),
 )

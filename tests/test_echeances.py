@@ -185,7 +185,9 @@ def test_creation_puis_realisation_par_l_interface(client, demo):
 
 
 # Bibliothèque de contrôles types : chaque modèle porte sa source officielle.
-SOURCE_OFFICIELLE = re.compile(r"service-public\.gouv\.fr F\d+|CCH art\. [LR]\d|Loi 65-557 art\.")
+SOURCE_OFFICIELLE = re.compile(
+    r"service-public\.gouv\.fr F\d+|CCH art\. [LR]\d|CSP art\. [LR]\d|Loi 65-557 art\."
+)
 
 
 def test_controles_types_sources_et_valeurs():
