@@ -172,6 +172,30 @@ def test_inscription_libre_fermee(client):
     assert not get_user_model().objects.filter(email="intrus@example.org").exists()
 
 
+@pytest.mark.parametrize("chemin", ["/compte/login/", "/compte/password/reset/", "/compte/signup/"])
+def test_aucun_lien_vers_l_inscription_fermee(client, chemin):
+    """L'inscription est fermée : aucune page d'entrée ne propose d'en créer un."""
+    reponse = client.get(chemin)
+    assert reponse.status_code == 200
+    page = reponse.content.decode()
+    assert 'name="csrfmiddlewaretoken"' in page or "signup_closed" in str([t.name for t in reponse.templates])
+    assert 'href="/compte/signup/' not in page
+
+
+def test_connexion_garde_formulaire_et_cle_d_acces(client):
+    """Contrôle positif du test précédent : la page de connexion n'est pas vide."""
+    page = client.get("/compte/login/").content.decode()
+    assert 'name="login"' in page and 'name="password"' in page
+    assert 'id="passkey_login"' in page
+
+
+def test_reinitialisation_pour_adresse_inconnue_n_envoie_rien(client):
+    """Le mail « compte inconnu » d'allauth contient un lien d'inscription : coupé."""
+    reponse = client.post("/compte/password/reset/", {"email": "inconnu@example.org"})
+    assert reponse.status_code == 302
+    assert len(mail.outbox) == 0
+
+
 # Invitations
 def test_invitation_cree_le_compte_une_seule_fois(client, demo):
     call_command("inviter", "Nouveau@example.org", Role.MEMBRE_CS, "--url", "https://copro.example.org")
