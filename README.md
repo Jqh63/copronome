@@ -35,6 +35,14 @@ COPRONOME_DEBUG=1 .venv/bin/python manage.py migrate
 COPRONOME_DEBUG=1 .venv/bin/python manage.py runserver
 ```
 
+Essai dans un vrai navigateur (Chromium sans tête, joué aussi par la CI) : invitation, second facteur
+(code TOTP ou clé d'accès simulée), incident, reconnexion.
+
+```bash
+.venv/bin/python -m playwright install chromium-headless-shell
+.venv/bin/pytest -q tests_navigateur
+```
+
 En production, la configuration se lit dans les variables `COPRONOME_*` (modèle : `env.exemple`).
 
 ## Lancer avec Docker Compose
