@@ -193,6 +193,16 @@ def test_invitation_cree_le_compte_une_seule_fois(client, demo):
     assert client.get(chemin).status_code == 404
 
 
+def test_invitation_active_le_second_facteur_sans_retaper_le_mot_de_passe(client):
+    """Le mot de passe vient d'être choisi : allauth doit le compter comme une
+    authentification récente, sinon il le redemande avant l'activation du TOTP."""
+    _, jeton = Invitation.creer("frais@example.org", Role.MEMBRE_CS)
+    mdp = "un-mot-de-passe-solide-2026"
+    client.post(reverse("accepter_invitation", args=[jeton]), {"mot_de_passe": mdp, "confirmation": mdp})
+    reponse = client.get(reverse("mfa_activate_totp"))
+    assert reponse.status_code == 200, reponse.get("Location")
+
+
 def test_invitation_expiree_refusee(client):
     invitation, jeton = Invitation.creer("tard@example.org", Role.MEMBRE_CS)
     Invitation.objects.filter(pk=invitation.pk).update(expire_le=timezone.now() - timedelta(seconds=1))
