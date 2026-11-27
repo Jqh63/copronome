@@ -9,9 +9,10 @@ import secrets
 from datetime import timedelta
 
 from django.conf import settings
-from django.db import models
+from django.db import models, transaction
 from django.utils import timezone
 
+from audit.models import Action, journaliser
 from copro.models import Batiment, Personne
 
 
@@ -86,6 +87,7 @@ class Invitation(models.Model):
         return f"{self.email} — {self.get_role_display()}"
 
     @classmethod
+    @transaction.atomic
     def creer(cls, email, role, batiment=None, creee_par=None):
         """Crée l'invitation et renvoie (invitation, jeton en clair) ; le
         jeton n'est plus récupérable ensuite."""
@@ -97,6 +99,13 @@ class Invitation(models.Model):
             creee_par=creee_par,
             empreinte_jeton=empreinte(jeton),
             expire_le=timezone.now() + cls.DUREE,
+        )
+        journaliser(
+            Action.INVITATION_CREEE,
+            acteur=creee_par,
+            objet=invitation,
+            role=role,
+            batiment=batiment.nom if batiment else "",
         )
         return invitation, jeton
 
