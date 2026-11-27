@@ -4,6 +4,11 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    ignore:
+      # Django reste sur la branche LTS (CLAUDE.md) : correctifs 5.2.x seulement.
+      # La montée vers la LTS suivante (6.2) se fait à la main.
+      - dependency-name: django
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
