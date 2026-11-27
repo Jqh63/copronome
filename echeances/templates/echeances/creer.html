@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block titre %}Nouvelle échéance — Copronome{% endblock %}
+{% block contenu %}
+<h1>Nouvelle échéance</h1>
+<form method="post">{% csrf_token %}{{ form.as_p }}<button type="submit">Enregistrer</button></form>
+{% endblock %}

@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     "acces",
     "incidents",
     "documents",
+    "echeances",
 ]
 
 MIDDLEWARE = [

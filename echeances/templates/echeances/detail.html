@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block titre %}{{ echeance.titre }} — Copronome{% endblock %}
+{% block contenu %}
+<h1>{{ echeance.titre }}</h1>
+<dl>
+  <dt>Type</dt><dd>{{ echeance.get_type_display }}</dd>
+  <dt>Lieu</dt><dd>{{ echeance.batiment|default:"Toute la copropriété" }}{% if echeance.partie_commune %} · {{ echeance.partie_commune.nom }}{% endif %}</dd>
+  <dt>{% if echeance.active %}Prochaine échéance{% else %}Close{% endif %}</dt>
+  <dd>{% if echeance.active %}{{ echeance.prochaine_le|date:"d/m/Y" }}{% if echeance.prochaine_le < aujourdhui %} <strong>en retard</strong>{% endif %} · rappel {{ echeance.rappel_jours }} jours avant{% else %}oui{% endif %}</dd>
+  <dt>Périodicité</dt><dd>{% if echeance.periodicite_mois %}tous les {{ echeance.periodicite_mois }} mois, comptés depuis la dernière réalisation{% else %}ponctuelle{% endif %}</dd>
+  {% if echeance.reference %}<dt>Référence</dt><dd>{{ echeance.reference }}</dd>{% endif %}
+  {% if echeance.notes %}<dt>Notes</dt><dd>{{ echeance.notes|linebreaksbr }}</dd>{% endif %}
+</dl>
+{% if echeance.active %}
+<h2>Marquer comme réalisée</h2>
+<form method="post" action="{% url 'echeances:realiser' echeance.pk %}">{% csrf_token %}{{ form.as_p }}<button type="submit">Enregistrer</button></form>
+{% endif %}
+<h2>Réalisations</h2>
+<ul>
+{% for realisation in realisations %}
+  <li>{{ realisation.realisee_le|date:"d/m/Y" }} (échéance du {{ realisation.pour_echeance_du|date:"d/m/Y" }}){% if realisation.auteur %} — {{ realisation.auteur.email }}{% endif %}{% if realisation.note %} : {{ realisation.note }}{% endif %}</li>
+{% empty %}
+  <li>Aucune réalisation.</li>
+{% endfor %}
+</ul>
+{% endblock %}

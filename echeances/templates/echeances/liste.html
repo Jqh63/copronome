@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block titre %}Échéances — Copronome{% endblock %}
+{% block contenu %}
+<h1>Échéances{% if closes %} closes{% endif %}</h1>
+<p><a href="{% url 'echeances:creer' %}">Nouvelle échéance</a> ·
+{% if closes %}<a href="{% url 'echeances:liste' %}">Échéances en cours</a>{% else %}<a href="{% url 'echeances:liste' %}?closes=1">Échéances closes</a>{% endif %}</p>
+<table>
+  <thead><tr><th>Échéance</th><th>Type</th><th>Lieu</th><th>Date</th><th>Périodicité</th></tr></thead>
+  <tbody>
+  {% for echeance in echeances %}
+    <tr>
+      <td><a href="{% url 'echeances:detail' echeance.pk %}">{{ echeance.titre }}</a></td>
+      <td>{{ echeance.get_type_display }}</td>
+      <td>{{ echeance.batiment|default:"Toute la copropriété" }}{% if echeance.partie_commune %} · {{ echeance.partie_commune.nom }}{% endif %}</td>
+      <td>{{ echeance.prochaine_le|date:"d/m/Y" }}{% if echeance.active and echeance.prochaine_le < aujourdhui %} <strong>en retard</strong>{% endif %}</td>
+      <td>{% if echeance.periodicite_mois %}tous les {{ echeance.periodicite_mois }} mois{% else %}ponctuelle{% endif %}</td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="5">Aucune échéance.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
