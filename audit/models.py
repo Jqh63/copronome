@@ -26,6 +26,7 @@ class Action(models.TextChoices):
     DOCUMENT_DEPOSE = "document_depose", "Document déposé"
     DOCUMENT_REMPLACE = "document_remplace", "Document remplacé"
     DOCUMENT_RETIRE = "document_retire", "Document retiré"
+    JOURNAL_EXPORTE = "journal_exporte", "Journal d'audit exporté"
 
 
 class JournalAuditQuerySet(models.QuerySet):

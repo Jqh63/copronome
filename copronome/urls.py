@@ -16,6 +16,7 @@ urlpatterns = [
     path("documents/", include("documents.urls")),
     path("echeances/", include("echeances.urls")),
     path("agenda/", include("agenda.urls")),
+    path("journal/", include("audit.urls")),
     path("invitation/", include("acces.urls")),
     path("compte/", include("allauth.urls")),
     path("admin/", admin.site.urls),
