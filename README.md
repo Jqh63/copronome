@@ -32,8 +32,13 @@ python3 -m venv .venv
 .venv/bin/pip install --require-hashes -r requirements.txt -r requirements-dev.txt
 .venv/bin/pytest -q
 COPRONOME_DEBUG=1 .venv/bin/python manage.py migrate
+COPRONOME_DEBUG=1 .venv/bin/python manage.py charger_demo --activite   # base vide seulement
 COPRONOME_DEBUG=1 .venv/bin/python manage.py runserver
 ```
+
+`charger_demo` crée une résidence fictive : 3 bâtiments, 32 lots (logements, caves, parkings),
+les clés générale, bâtiment, escalier, ascenseur, portail, chaudières et stationnements. `--activite`
+y ajoute des échéances, des incidents et des rendez-vous datés autour du jour du chargement.
 
 Essai dans un vrai navigateur (Chromium sans tête, joué aussi par la CI) : invitation, second facteur
 (code TOTP ou clé d'accès simulée), incident, reconnexion.
