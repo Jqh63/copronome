@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Garde-fou avant commit : refuse un secret ou une donnée personnelle.
+# Activation (une fois par clone) : git config core.hooksPath .githooks
+# 1. gitleaks sur le contenu indexé, avec .gitleaks.toml (secrets, IBAN,
+#    téléphones, mails hors domaines fictifs). gitleaks absent = refus.
+# 2. Termes privés de VOTRE copropriété (nom, adresse, noms des personnes),
+#    un par ligne, dans un fichier HORS du dépôt (jamais versionné) :
+#    ${COPRONOME_TERMES_PRIVES:-~/.config/copronome/termes-prives.txt}
+set -euo pipefail
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "pre-commit : gitleaks introuvable — commit refusé (https://github.com/gitleaks/gitleaks)" >&2
+  exit 1
+fi
+gitleaks git --pre-commit --staged --redact --no-banner --config .gitleaks.toml
+
+termes="${COPRONOME_TERMES_PRIVES:-${XDG_CONFIG_HOME:-$HOME/.config}/copronome/termes-prives.txt}"
+if [ ! -s "$termes" ]; then
+  echo "pre-commit : liste de termes privés absente ($termes) — vérification sautée" >&2
+  exit 0
+fi
+motifs="$(mktemp)"; trap 'rm -f "$motifs"' EXIT
+sed -e 's/\r$//' -e '/^[[:space:]]*#/d' -e '/^[[:space:]]*$/d' "$termes" > "$motifs"
+[ -s "$motifs" ] || exit 0
+if git diff --cached -U0 --no-color | sed -n 's/^+\([^+]\)/\1/p' | grep -inF -f "$motifs"; then
+  echo "pre-commit : terme privé de la copropriété dans le contenu indexé — commit refusé" >&2
+  exit 1
+fi
