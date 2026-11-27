@@ -25,6 +25,18 @@ Copronome ne rend jamais obligatoire un accès numérique : tout document se gé
 
 Python / Django, Postgres, htmx, Caddy, déploiement par Docker Compose.
 
+## Développer
+
+```bash
+python3 -m venv .venv
+.venv/bin/pip install --require-hashes -r requirements.txt -r requirements-dev.txt
+.venv/bin/pytest -q
+COPRONOME_DEBUG=1 .venv/bin/python manage.py migrate
+COPRONOME_DEBUG=1 .venv/bin/python manage.py runserver
+```
+
+En production, la configuration se lit dans les variables `COPRONOME_*` (modèle : `.env.example`).
+
 ## Contribuer : aucun secret, aucune donnée réelle
 
 Avant le premier commit, dans votre clone :

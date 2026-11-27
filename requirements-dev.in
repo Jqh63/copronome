@@ -1,0 +1,7 @@
+# Outils de développement et de CI. Régénérer requirements-dev.txt :
+#   pip-compile --generate-hashes --allow-unsafe requirements-dev.in
+-c requirements.txt
+pytest
+pytest-django
+ruff
+pip-audit
