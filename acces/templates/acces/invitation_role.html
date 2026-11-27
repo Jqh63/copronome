@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block contenu %}
+<h1>Ajouter un rôle</h1>
+<p>Ajouter le rôle <strong>{{ invitation.get_role_display }}</strong>{% if invitation.batiment %} ({{ invitation.batiment }}){% endif %} à votre compte ?</p>
+<form method="post">{% csrf_token %}<button type="submit">Ajouter</button></form>
+{% endblock %}

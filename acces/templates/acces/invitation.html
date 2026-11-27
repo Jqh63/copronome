@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block contenu %}
+<h1>Créer votre compte</h1>
+<p>Invitation pour <strong>{{ invitation.email }}</strong> : {{ invitation.get_role_display }}{% if invitation.batiment %} ({{ invitation.batiment }}){% endif %}.</p>
+<form method="post">{% csrf_token %}{{ form.as_p }}<button type="submit">Créer le compte</button></form>
+<p>Vous devrez ensuite enregistrer une clé d'accès (passkey) ou une application d'authentification.</p>
+{% endblock %}
