@@ -36,12 +36,24 @@ DEBUT = datetime.date(2015, 1, 1)
 
 # Par bâtiment : logements (étage, typologie), caves, parkings, logements sans chaudière.
 BATIMENTS = {
-    "A": {"logements": [(0, "T2"), (0, "T3"), (1, "T3"), (1, "T4"), (2, "T3"), (2, "T4"), (3, "T5")],
-          "caves": 2, "parkings": 0, "sans_chaudiere": {1}},
-    "B": {"logements": [(0, "T2"), (0, "T2"), (1, "T3"), (1, "T3"), (2, "T3"), (2, "T4"), (3, "T4"), (3, "T4")],
-          "caves": 0, "parkings": 6, "sans_chaudiere": set()},
-    "C": {"logements": [(0, "T3"), (1, "T2"), (1, "T4"), (2, "T3"), (2, "T4"), (3, "T5")],
-          "caves": 3, "parkings": 0, "sans_chaudiere": {4}},
+    "A": {
+        "logements": [(0, "T2"), (0, "T3"), (1, "T3"), (1, "T4"), (2, "T3"), (2, "T4"), (3, "T5")],
+        "caves": 2,
+        "parkings": 0,
+        "sans_chaudiere": {1},
+    },
+    "B": {
+        "logements": [(0, "T2"), (0, "T2"), (1, "T3"), (1, "T3"), (2, "T3"), (2, "T4"), (3, "T4"), (3, "T4")],
+        "caves": 0,
+        "parkings": 6,
+        "sans_chaudiere": set(),
+    },
+    "C": {
+        "logements": [(0, "T3"), (1, "T2"), (1, "T4"), (2, "T3"), (2, "T4"), (3, "T5")],
+        "caves": 3,
+        "parkings": 0,
+        "sans_chaudiere": {4},
+    },
 }
 POIDS_TYPOLOGIE = {"T2": 45, "T3": 65, "T4": 80, "T5": 95}  # surface pondérée fictive
 POIDS_CAVE, POIDS_PARKING = 3, 8
@@ -94,7 +106,9 @@ class Command(BaseCommand):
             PartieCommune.objects.create(
                 nom=f"Ascenseur {lettre}", type=PartieCommune.Type.ASCENSEUR, batiment=batiment
             )
-            PartieCommune.objects.create(nom=f"Hall {lettre}", type=PartieCommune.Type.HALL, batiment=batiment)
+            PartieCommune.objects.create(
+                nom=f"Hall {lettre}", type=PartieCommune.Type.HALL, batiment=batiment
+            )
             poids_batiment, poids_escalier, poids_ascenseur = {}, {}, {}
             for n, (etage, typologie) in enumerate(spec["logements"], start=1):
                 lot = Lot.objects.create(
@@ -151,9 +165,7 @@ class Command(BaseCommand):
             ("Chaudières", poids_chaudiere, "Une part par logement équipé d'une chaudière."),
             ("Stationnements B", poids_stationnement, "Une part par place du parking B."),
         ):
-            repartir(
-                CleRepartition.objects.create(nom=nom, base=len(poids), description=description), poids
-            )
+            repartir(CleRepartition.objects.create(nom=nom, base=len(poids), description=description), poids)
         return lots
 
     def _personnes(self, lots):
@@ -179,7 +191,9 @@ class Command(BaseCommand):
                 Detention.objects.create(personne=du_batiment[rang % len(du_batiment)], lot=lot, debut=DEBUT)
 
         logements = [lot for lot in lots if lot.type == Lot.Type.LOGEMENT]
-        indivisaire = Personne.objects.create(nom="Démo", prenom="Indivisaire", email="indivision@example.org")
+        indivisaire = Personne.objects.create(
+            nom="Démo", prenom="Indivisaire", email="indivision@example.org"
+        )
         Detention.objects.filter(lot=logements[0]).update(
             nature=Detention.Nature.INDIVISION, quote_part_denominateur=2
         )
@@ -226,7 +240,11 @@ class Command(BaseCommand):
             ("Contrat d'entretien des espaces verts", Echeance.Type.CONTRAT, 40, 12, 60),
         ):
             Echeance.objects.create(
-                titre=titre, type=type, prochaine_le=jours(dans), periodicite_mois=periodicite, rappel_jours=rappel
+                titre=titre,
+                type=type,
+                prochaine_le=jours(dans),
+                periodicite_mois=periodicite,
+                rappel_jours=rappel,
             )
         realiser(
             Echeance.objects.get(titre="Vérification des extincteurs"),
@@ -237,22 +255,44 @@ class Command(BaseCommand):
 
         hall_b = PartieCommune.objects.get(nom="Hall B")
         for titre, description, priorite, localisation, suite in (
-            ("Porte du hall B qui ne ferme plus", "La ventouse ne retient plus la porte.",
-             Incident.Priorite.HAUTE, {"partie_commune": hall_b}, [Evenement.Type.TRANSMISSION]),
-            ("Infiltration au plafond", "Tache d'humidité qui s'étend au plafond de la chambre.",
-             Incident.Priorite.URGENTE, {"lot": Lot.objects.get(numero="C06")},
-             [Evenement.Type.TRANSMISSION, Evenement.Type.REPONSE_SYNDIC]),
-            ("Éclairage du parking B en panne", "Trois néons hors service.",
-             Incident.Priorite.NORMALE, {"partie_commune": PartieCommune.objects.get(nom="Parking B")}, []),
+            (
+                "Porte du hall B qui ne ferme plus",
+                "La ventouse ne retient plus la porte.",
+                Incident.Priorite.HAUTE,
+                {"partie_commune": hall_b},
+                [Evenement.Type.TRANSMISSION],
+            ),
+            (
+                "Infiltration au plafond",
+                "Tache d'humidité qui s'étend au plafond de la chambre.",
+                Incident.Priorite.URGENTE,
+                {"lot": Lot.objects.get(numero="C06")},
+                [Evenement.Type.TRANSMISSION, Evenement.Type.REPONSE_SYNDIC],
+            ),
+            (
+                "Éclairage du parking B en panne",
+                "Trois néons hors service.",
+                Incident.Priorite.NORMALE,
+                {"partie_commune": PartieCommune.objects.get(nom="Parking B")},
+                [],
+            ),
             ("Haie à tailler côté rue", "", Incident.Priorite.BASSE, {}, [Evenement.Type.STATUT]),
         ):
-            incident = Incident(titre=titre, description=description or titre, priorite=priorite, **localisation)
+            incident = Incident(
+                titre=titre, description=description or titre, priorite=priorite, **localisation
+            )
             incident.full_clean()
             incident.save()
             journaliser(incident, Evenement.Type.CREATION, None)
             for type in suite:
                 if type == Evenement.Type.STATUT:
-                    journaliser(incident, type, None, texte="Fait par le jardinier (démo).", nouveau_statut=Statut.RESOLU)
+                    journaliser(
+                        incident,
+                        type,
+                        None,
+                        texte="Fait par le jardinier (démo).",
+                        nouveau_statut=Statut.RESOLU,
+                    )
                 elif type == Evenement.Type.REPONSE_SYNDIC:
                     journaliser(incident, type, None, texte="Couvreur missionné (démo).")
                 else:
@@ -266,5 +306,9 @@ class Command(BaseCommand):
         ):
             debut = (maintenant + datetime.timedelta(days=dans)).replace(hour=heure)
             RendezVous.objects.create(
-                titre=titre, debut=debut, fin=debut + datetime.timedelta(hours=2), lieu=lieu, batiment=batiment
+                titre=titre,
+                debut=debut,
+                fin=debut + datetime.timedelta(hours=2),
+                lieu=lieu,
+                batiment=batiment,
             )

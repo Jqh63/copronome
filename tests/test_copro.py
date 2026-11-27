@@ -96,7 +96,9 @@ def test_personne_morale_sans_prenom():
 def test_demo_coherente_et_refusee_sur_base_non_vide():
     call_command("charger_demo")
     assert Lot.objects.count() == 32
-    assert {t: Lot.objects.filter(type=t).count() for t in Lot.Type.values if Lot.objects.filter(type=t).exists()} == {
+    assert {
+        t: Lot.objects.filter(type=t).count() for t in Lot.Type.values if Lot.objects.filter(type=t).exists()
+    } == {
         Lot.Type.LOGEMENT: 21,
         Lot.Type.CAVE: 5,
         Lot.Type.PARKING: 6,
