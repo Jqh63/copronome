@@ -3,6 +3,7 @@
 {% block contenu %}
 <h1>Retirer « {{ document.titre }} »</h1>
 <p>Le fichier sera effacé{% if versions %}, ainsi que {{ versions|length }} version{{ versions|length|pluralize }} précédente{{ versions|length|pluralize }}{% endif %}. Cette action ne se défait pas. Le titre, l'empreinte et le motif restent dans le journal.</p>
+<p>Conservation : <strong>{{ conservation.libelle }}</strong>. {{ conservation.regle.justification }}</p>
 <form method="post">{% csrf_token %}{{ form.as_p }}<button type="submit">Retirer définitivement</button></form>
 <p><a href="{% url 'documents:liste' %}">Annuler</a></p>
 {% endblock %}

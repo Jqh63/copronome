@@ -39,8 +39,9 @@ def _remplacer(client, document, contenu=PDF2, nom="devis-v2.pdf", **champs):
     return client.post(reverse("documents:remplacer", args=[document.pk]), donnees)
 
 
-def _retirer(client, document, motif="Déposé par erreur"):
-    return client.post(reverse("documents:retirer", args=[document.pk]), {"motif": motif})
+def _retirer(client, document, motif="Données personnelles", raison="effacement"):
+    donnees = {"motif": motif, "raison": raison}
+    return client.post(reverse("documents:retirer", args=[document.pk]), donnees)
 
 
 def _existe(document):

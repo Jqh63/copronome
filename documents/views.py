@@ -5,7 +5,8 @@ from django.utils import timezone
 
 from acces.droits import ECRIRE, LIRE, batiments_visibles, exige, filtre_documents, peut, verifier
 from audit.models import Action, journaliser
-from documents.forms import DocumentForm, RemplacementForm, RetraitForm, renseigner_fichier
+from documents.conservation import echeance, erreur_encore_possible, retrait_bloque
+from documents.forms import DocumentForm, RaisonRetrait, RemplacementForm, RetraitForm, renseigner_fichier
 from documents.models import Categorie, Document
 
 
@@ -24,6 +25,7 @@ def liste(request):
     documents = list(documents)
     for document in documents:
         document.modifiable = peut(request.user, ECRIRE, "documents", document)
+        document.conservation = echeance(document)
     return render(
         request,
         "documents/liste.html",
@@ -82,6 +84,7 @@ def remplacer(request, pk):
                 visibilite=ancien.visibilite,
                 batiment=ancien.batiment,
                 date_document=form.cleaned_data["date_document"] or ancien.date_document,
+                valide_jusquau=form.cleaned_data["valide_jusquau"] or ancien.valide_jusquau,
                 depose_par=request.user,
                 remplace=ancien,
             )
@@ -112,10 +115,15 @@ def retirer(request, pk):
     form = RetraitForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
         motif = form.cleaned_data["motif"]
+        raison = form.cleaned_data["raison"]
         with transaction.atomic():
             document = Document.objects.select_for_update().get(pk=document.pk)
             if not document.est_courant:
                 return HttpResponseGone("Ce document a déjà été remplacé ou retiré.")
+            refus = _refus_conservation(document, raison, timezone.now())
+            if refus:
+                form.add_error("raison", refus)
+                return _page_retrait(request, form, document, status=409)
             # Le retrait emporte les versions précédentes : sinon un document
             # retiré pour données personnelles resterait lisible par l'ancienne.
             retires = [document, *document.versions_precedentes()]
@@ -133,16 +141,39 @@ def retirer(request, pk):
                     objet=version,
                     empreinte=version.empreinte,
                     motif=motif,
+                    raison=raison,
                 )
                 # Effacement après validation : un retrait annulé garde son fichier.
                 transaction.on_commit(lambda nom=fichier: stockage.delete(nom))
         return redirect("documents:liste")
+    return _page_retrait(request, form, document, status=400 if form.errors else 200)
+
+
+def _page_retrait(request, form, document, status):
     return render(
         request,
         "documents/retirer.html",
-        {"form": form, "document": document, "versions": list(document.versions_precedentes())},
-        status=400 if form.errors else 200,
+        {
+            "form": form,
+            "document": document,
+            "versions": list(document.versions_precedentes()),
+            "conservation": echeance(document),
+        },
+        status=status,
     )
+
+
+def _refus_conservation(document, raison, maintenant):
+    """Seul décideur du blocage (conservation.py porte les durées)."""
+    if raison == RaisonRetrait.EFFACEMENT:
+        return None
+    if raison == RaisonRetrait.ERREUR:
+        if not erreur_encore_possible(document, maintenant):
+            return "Le délai de 48 h pour une erreur de dépôt est passé."
+        if document.remplace_id is not None:
+            return "Ce document a des versions précédentes : déposez une version corrigée avec « Remplacer »."
+        return None
+    return retrait_bloque(document, maintenant)
 
 
 @exige(LIRE, "documents")
