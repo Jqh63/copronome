@@ -95,14 +95,40 @@ def test_personne_morale_sans_prenom():
 
 def test_demo_coherente_et_refusee_sur_base_non_vide():
     call_command("charger_demo")
-    assert Lot.objects.count() == 12
+    assert Lot.objects.count() == 32
+    assert {t: Lot.objects.filter(type=t).count() for t in Lot.Type.values if Lot.objects.filter(type=t).exists()} == {
+        Lot.Type.LOGEMENT: 21,
+        Lot.Type.CAVE: 5,
+        Lot.Type.PARKING: 6,
+    }
     for cle in CleRepartition.objects.all():
         assert cle.est_complete(), cle
     for tantieme in Tantieme.objects.all():
         tantieme.full_clean()
+    assert CleRepartition.objects.get(nom="Charges générales").tantiemes.count() == 32
+    # Le rez-de-chaussée ne paie pas l'ascenseur.
+    assert not Tantieme.objects.filter(cle__nom__startswith="Ascenseur", lot__etage=0).exists()
+    # Chaque lot a au moins un détenteur en cours ; quote-parts de 1 par lot.
+    for lot in Lot.objects.all():
+        actives = lot.detentions_actives()
+        assert actives.exists(), lot
+        assert sum(d.quote_part_numerateur / d.quote_part_denominateur for d in actives) == 1, lot
     assert all(p.email.endswith("@example.org") for p in Personne.objects.all())
     with pytest.raises(CommandError, match="déjà des lots"):
         call_command("charger_demo")
+
+
+def test_demo_avec_activite():
+    from echeances.models import Echeance
+    from incidents.models import Incident, Statut
+
+    call_command("charger_demo", "--activite")
+    assert Echeance.objects.filter(partie_commune__type=PartieCommune.Type.ASCENSEUR).count() == 3
+    assert Echeance.objects.get(titre="Vérification des extincteurs").realisations.count() == 1
+    statuts = set(Incident.objects.values_list("statut", flat=True))
+    assert {Statut.NOUVEAU, Statut.TRANSMIS, Statut.RESOLU} <= statuts
+    for incident in Incident.objects.all():
+        incident.full_clean()
 
 
 def test_pages_admin_des_modeles_s_ouvrent(admin_client, admin_user):
