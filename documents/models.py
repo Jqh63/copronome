@@ -82,6 +82,18 @@ class Document(models.Model):
         settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name="+", editable=False
     )
     depose_le = models.DateTimeField(auto_now_add=True)
+    # Version : la nouvelle pointe vers celle qu'elle remplace, qui sort de la
+    # liste et reste téléchargeable comme version précédente.
+    remplace = models.OneToOneField(
+        "self", null=True, blank=True, on_delete=models.PROTECT, related_name="remplace_par", editable=False
+    )
+    # Retrait : le fichier est effacé du disque, la fiche reste (titre,
+    # empreinte, motif) pour que le journal d'audit pointe vers quelque chose.
+    retire_le = models.DateTimeField(null=True, blank=True, editable=False)
+    retire_par = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name="+", editable=False
+    )
+    motif_retrait = models.CharField(max_length=500, blank=True, editable=False)
 
     class Meta:
         ordering = ["-depose_le"]
@@ -89,6 +101,16 @@ class Document(models.Model):
 
     def __str__(self):
         return self.titre
+
+    @property
+    def est_courant(self):
+        return self.retire_le is None and not hasattr(self, "remplace_par")
+
+    def versions_precedentes(self):
+        version = self.remplace
+        while version is not None:
+            yield version
+            version = version.remplace
 
 
 def empreinte_sha256(fichier):
@@ -101,4 +123,5 @@ def empreinte_sha256(fichier):
 
 
 def volume_occupe():
-    return Document.objects.aggregate(total=models.Sum("taille"))["total"] or 0
+    # Un document retiré n'occupe plus de place : son fichier est effacé.
+    return Document.objects.filter(retire_le__isnull=True).aggregate(total=models.Sum("taille"))["total"] or 0

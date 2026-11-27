@@ -24,6 +24,8 @@ class Action(models.TextChoices):
     INVITATION_CREEE = "invitation_creee", "Invitation créée"
     INVITATION_ACCEPTEE = "invitation_acceptee", "Invitation acceptée"
     DOCUMENT_DEPOSE = "document_depose", "Document déposé"
+    DOCUMENT_REMPLACE = "document_remplace", "Document remplacé"
+    DOCUMENT_RETIRE = "document_retire", "Document retiré"
 
 
 class JournalAuditQuerySet(models.QuerySet):

@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block titre %}Remplacer un document — Copronome{% endblock %}
+{% block contenu %}
+<h1>Remplacer « {{ document.titre }} »</h1>
+<p>La nouvelle version garde le titre, la catégorie, la visibilité et le lieu. L'ancienne reste téléchargeable depuis la nouvelle.</p>
+<form method="post" enctype="multipart/form-data">{% csrf_token %}{{ form.as_p }}<button type="submit">Remplacer</button></form>
+<p><a href="{% url 'documents:liste' %}">Annuler</a></p>
+{% endblock %}
