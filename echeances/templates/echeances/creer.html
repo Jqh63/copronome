@@ -2,5 +2,14 @@
 {% block titre %}Nouvelle échéance — Copronome{% endblock %}
 {% block contenu %}
 <h1>Nouvelle échéance</h1>
+<details{% if not modele %} open{% endif %}>
+  <summary>Partir d'un contrôle type</summary>
+  <p>Périodicités lues sur un texte officiel, cité dans le champ « référence ». La date reste à saisir.</p>
+  <ul>
+    {% for controle in controles_types %}
+    <li><a href="?modele={{ controle.code|urlencode }}">{{ controle.titre }}</a> — tous les {{ controle.periodicite_mois }} mois</li>
+    {% endfor %}
+  </ul>
+</details>
 <form method="post">{% csrf_token %}{{ form.as_p }}<button type="submit">Enregistrer</button></form>
 {% endblock %}

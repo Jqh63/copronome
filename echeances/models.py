@@ -1,9 +1,9 @@
 """Échéances et leurs réalisations (ADR de conception, § 3).
 
 Aucune fréquence légale n'est écrite ici : la périodicité et le texte qui
-fonde l'échéance (`reference`) sont saisis par le conseil syndical. Une
-bibliothèque de contrôles types n'entrera qu'avec la source de chaque
-fréquence (CLAUDE.md, principes de code).
+fonde l'échéance (`reference`) sont saisis par le conseil syndical, au
+besoin pré-remplis depuis `controles_types` (chaque fréquence y porte sa
+source officielle).
 
 Les réalisations forment un journal en ajout seul ; la date de la prochaine
 échéance ne change que par une réalisation.
