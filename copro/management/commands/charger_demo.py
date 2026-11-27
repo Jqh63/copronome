@@ -228,7 +228,7 @@ class Command(BaseCommand):
                 prochaine_le=jours(120 + 90 * ascenseur.batiment.ordre),
                 periodicite_mois=60,
                 rappel_jours=90,
-                reference="Code de la construction et de l'habitation, art. R134-11",
+                reference="service-public.gouv.fr F10538 (CCH art. R134-6 à R134-13)",
                 partie_commune=ascenseur,
                 batiment=ascenseur.batiment,
             )
