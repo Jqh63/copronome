@@ -7,7 +7,24 @@
   <link rel="stylesheet" href="{% static 'copronome.css' %}">
 </head>
 <body>
-  <header><a href="{% url 'accueil' %}">Copronome</a></header>
+  <header>
+    <a class="marque" href="{% url 'accueil' %}">Copronome</a>
+    {% if user.is_authenticated %}
+    <nav aria-label="Menu principal">
+      <ul>
+        {% for entree in menu %}
+        <li><a href="{{ entree.url }}"{% if request.path == entree.url %} aria-current="page"{% endif %}>{{ entree.libelle }}</a></li>
+        {% endfor %}
+      </ul>
+    </nav>
+    <div class="compte">
+      <a href="{% url 'account_email' %}">{{ user.email }}</a>
+      <form method="post" action="{% url 'account_logout' %}">{% csrf_token %}<button type="submit">Se déconnecter</button></form>
+    </div>
+    {% else %}
+    <div class="compte"><a href="{% url 'account_login' %}">Se connecter</a></div>
+    {% endif %}
+  </header>
   <main>{% block contenu %}{% endblock %}</main>
 </body>
 </html>
