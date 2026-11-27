@@ -1,0 +1,111 @@
+# Copronome en local ou sur un serveur : app (gunicorn), Postgres, Caddy,
+# rappels quotidiens. Configuration par .env à côté de ce fichier (modèle :
+# .env.example) ; les deux secrets sont obligatoires, compose refuse sinon.
+#   docker compose up -d --build
+#   docker compose run --rm app inviter ...      (commandes manage.py)
+# Images tierces épinglées par digest ; seul Caddy est publié, l'app et la
+# base ne sont joignables que sur les réseaux internes.
+
+x-app: &app
+  build: .
+  image: copronome:local
+  restart: unless-stopped
+  read_only: true
+  tmpfs: [/tmp]
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  environment:
+    COPRONOME_SECRET_KEY: ${COPRONOME_SECRET_KEY:?COPRONOME_SECRET_KEY manquant dans .env}
+    COPRONOME_ALLOWED_HOSTS: ${COPRONOME_DOMAINE:-localhost}
+    COPRONOME_CSRF_TRUSTED_ORIGINS: ${COPRONOME_URL_PUBLIQUE:-https://localhost:8443}
+    COPRONOME_URL_PUBLIQUE: ${COPRONOME_URL_PUBLIQUE:-https://localhost:8443}
+    COPRONOME_TRUSTED_PROXY_COUNT: "1"
+    COPRONOME_DB_ENGINE: postgres
+    COPRONOME_DB_HOST: db
+    COPRONOME_DB_PASSWORD: ${COPRONOME_DB_PASSWORD:?COPRONOME_DB_PASSWORD manquant dans .env}
+    COPRONOME_DOCUMENT_TAILLE_MAX_MO: ${COPRONOME_DOCUMENT_TAILLE_MAX_MO:-20}
+    COPRONOME_DOCUMENTS_QUOTA_MO: ${COPRONOME_DOCUMENTS_QUOTA_MO:-2048}
+    COPRONOME_EMAIL_FROM: ${COPRONOME_EMAIL_FROM:-copronome@localhost}
+    COPRONOME_EMAIL_HOST: ${COPRONOME_EMAIL_HOST:-}
+    COPRONOME_EMAIL_PORT: ${COPRONOME_EMAIL_PORT:-587}
+    COPRONOME_EMAIL_USER: ${COPRONOME_EMAIL_USER:-}
+    COPRONOME_EMAIL_PASSWORD: ${COPRONOME_EMAIL_PASSWORD:-}
+    COPRONOME_RAPPELS_INTERVALLE: ${COPRONOME_RAPPELS_INTERVALLE:-86400}
+  networks: [base, web]
+
+services:
+  app:
+    <<: *app
+    command: web
+    volumes:
+      - media:/srv/media
+      - static:/srv/static
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "/app/docker/entrypoint.sh", "sante"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+
+  rappels:
+    <<: *app
+    command: rappels
+    depends_on:
+      app:
+        condition: service_healthy
+
+  db:
+    # même digest que la CI
+    image: postgres:17-alpine@sha256:f9cf3e1f0066f0eb0c48707d864f0ac5941e9ff454a072077d97a4d278d07d73
+    restart: unless-stopped
+    security_opt: ["no-new-privileges:true"]
+    environment:
+      POSTGRES_USER: copronome
+      POSTGRES_DB: copronome
+      POSTGRES_PASSWORD: ${COPRONOME_DB_PASSWORD:?COPRONOME_DB_PASSWORD manquant dans .env}
+    volumes:
+      - db:/var/lib/postgresql/data
+    networks: [base]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U copronome -d copronome"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  caddy:
+    # épinglée par digest
+    image: caddy:2-alpine@sha256:003a97808e781aa9f7e75cc2f43d34d461099031faf5e20faefb9f61126836f0
+    restart: unless-stopped
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    security_opt: ["no-new-privileges:true"]
+    environment:
+      COPRONOME_DOMAINE: ${COPRONOME_DOMAINE:-localhost}
+      COPRONOME_CORPS_MAX_MO: ${COPRONOME_CORPS_MAX_MO:-21}
+    ports:
+      - "${COPRONOME_PORT_HTTPS:-8443}:443"
+    volumes:
+      - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
+      - static:/srv/static:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      app:
+        condition: service_healthy
+    networks: [web]
+
+networks:
+  # La base n'a aucune sortie : seuls app et rappels la joignent.
+  base:
+    internal: true
+  web: {}
+
+volumes:
+  db:
+  media:
+  static:
+  caddy-data:
+  caddy-config:

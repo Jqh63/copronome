@@ -1,0 +1,15 @@
+# Rien de local ni de réel dans le contexte de build
+.git
+.github
+.venv
+venv
+.env
+.env.*
+data
+media
+backups
+staticfiles
+**/__pycache__
+*.sqlite3
+*.dump
+.pytest_cache
