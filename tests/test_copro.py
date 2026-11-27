@@ -105,7 +105,10 @@ def test_demo_coherente_et_refusee_sur_base_non_vide():
         call_command("charger_demo")
 
 
-def test_pages_admin_des_modeles_s_ouvrent(admin_client):
+def test_pages_admin_des_modeles_s_ouvrent(admin_client, admin_user):
+    from allauth.mfa.models import Authenticator
+
+    Authenticator.objects.create(user=admin_user, type=Authenticator.Type.TOTP, data={"secret": "x"})
     call_command("charger_demo")
     for modele in ["batiment", "partiecommune", "lot", "clerepartition", "personne"]:
         assert admin_client.get(f"/admin/copro/{modele}/").status_code == 200

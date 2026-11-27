@@ -43,7 +43,12 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.humanize",
+    "allauth",
+    "allauth.account",
+    "allauth.mfa",
     "copro",
+    "acces",
 ]
 
 MIDDLEWARE = [
@@ -55,6 +60,8 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
+    "acces.middleware.SecondFacteurObligatoire",
 ]
 
 ROOT_URLCONF = "copronome.urls"
@@ -96,6 +103,42 @@ else:
             "NAME": Path(env("DATA_DIR", BASE_DIR / "data")) / "copronome.sqlite3",
         }
     }
+
+# Cache partagé entre processus : le rate limit d'allauth s'y appuie
+# (le cache mémoire par défaut serait propre à chaque worker).
+# Table créée par `manage.py createcachetable`.
+CACHES = {
+    "default": {"BACKEND": "django.core.cache.backends.db.DatabaseCache", "LOCATION": "cache_copronome"}
+}
+
+AUTHENTICATION_BACKENDS = ["allauth.account.auth_backends.AuthenticationBackend"]
+LOGIN_URL = "/compte/login/"
+LOGIN_REDIRECT_URL = "/"
+
+# Comptes : connexion par mail, inscription libre fermée (invitations).
+ACCOUNT_ADAPTER = "acces.adapter.AdaptateurCompte"
+ACCOUNT_LOGIN_METHODS = {"email"}
+ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
+ACCOUNT_EMAIL_VERIFICATION = "mandatory"
+ACCOUNT_PREVENT_ENUMERATION = True
+ACCOUNT_LOGOUT_ON_PASSWORD_CHANGE = True
+ACCOUNT_LOGIN_ON_PASSWORD_RESET = False
+
+# Second facteur : passkey proposée par défaut, TOTP en secours (ADR, § 6).
+MFA_SUPPORTED_TYPES = ["webauthn", "totp", "recovery_codes"]
+MFA_PASSKEY_LOGIN_ENABLED = True
+MFA_WEBAUTHN_ALLOW_INSECURE_ORIGIN = DEBUG
+
+# Mails : console en debug, relais SMTP authentifié sinon.
+DEFAULT_FROM_EMAIL = env("EMAIL_FROM", "copronome@localhost")
+if DEBUG:
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+else:
+    EMAIL_HOST = env("EMAIL_HOST", "")
+    EMAIL_PORT = int(env("EMAIL_PORT", "587"))
+    EMAIL_HOST_USER = env("EMAIL_USER", "")
+    EMAIL_HOST_PASSWORD = env("EMAIL_PASSWORD", "")
+    EMAIL_USE_TLS = True
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
