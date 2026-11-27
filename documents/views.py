@@ -1,19 +1,29 @@
 from django.db import transaction
-from django.http import FileResponse
+from django.http import FileResponse, HttpResponseGone
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 
-from acces.droits import ECRIRE, LIRE, batiments_visibles, exige, filtre_documents, verifier
+from acces.droits import ECRIRE, LIRE, batiments_visibles, exige, filtre_documents, peut, verifier
 from audit.models import Action, journaliser
-from documents.forms import DocumentForm
+from documents.forms import DocumentForm, RemplacementForm, RetraitForm, renseigner_fichier
 from documents.models import Categorie, Document
 
 
 @exige(LIRE, "documents")
 def liste(request):
-    documents = Document.objects.filter(filtre_documents(request.user)).select_related("batiment")
+    # Seules les versions courantes : une version remplacée se lit depuis la
+    # suivante, un document retiré n'a plus de fichier.
+    documents = (
+        Document.objects.filter(filtre_documents(request.user))
+        .filter(retire_le__isnull=True, remplace_par__isnull=True)
+        .select_related("batiment", "remplace")
+    )
     categorie = request.GET.get("categorie")
     if categorie:
         documents = documents.filter(categorie=categorie)
+    documents = list(documents)
+    for document in documents:
+        document.modifiable = peut(request.user, ECRIRE, "documents", document)
     return render(
         request,
         "documents/liste.html",
@@ -46,10 +56,101 @@ def deposer(request):
     return render(request, "documents/deposer.html", {"form": form}, status=400 if form.errors else 200)
 
 
+def _courant_a_modifier(request, pk):
+    """Document chargé depuis l'URL, droit d'écriture vérifié sur l'objet
+    avant tout autre test (un 410 ne révèle rien à qui n'a pas le droit)."""
+    document = get_object_or_404(Document, pk=pk)
+    verifier(request.user, ECRIRE, "documents", document)
+    return document
+
+
+@exige(ECRIRE, "documents")
+def remplacer(request, pk):
+    ancien = _courant_a_modifier(request, pk)
+    if not ancien.est_courant:
+        return HttpResponseGone("Ce document a déjà été remplacé ou retiré.")
+    form = RemplacementForm(request.POST or None, request.FILES or None)
+    if request.method == "POST" and form.is_valid():
+        with transaction.atomic():
+            # Verrou : deux remplacements simultanés ne créent pas deux suites.
+            ancien = Document.objects.select_for_update().get(pk=ancien.pk)
+            if not ancien.est_courant:
+                return HttpResponseGone("Ce document a déjà été remplacé ou retiré.")
+            nouveau = Document(
+                titre=ancien.titre,
+                categorie=ancien.categorie,
+                visibilite=ancien.visibilite,
+                batiment=ancien.batiment,
+                date_document=form.cleaned_data["date_document"] or ancien.date_document,
+                depose_par=request.user,
+                remplace=ancien,
+            )
+            renseigner_fichier(nouveau, form.cleaned_data["fichier"], form.type_mime)
+            nouveau.save()
+            journaliser(
+                Action.DOCUMENT_REMPLACE,
+                acteur=request.user,
+                objet=nouveau,
+                remplace=ancien.pk,
+                ancienne_empreinte=ancien.empreinte,
+                empreinte=nouveau.empreinte,
+            )
+        return redirect("documents:liste")
+    return render(
+        request,
+        "documents/remplacer.html",
+        {"form": form, "document": ancien},
+        status=400 if form.errors else 200,
+    )
+
+
+@exige(ECRIRE, "documents")
+def retirer(request, pk):
+    document = _courant_a_modifier(request, pk)
+    if not document.est_courant:
+        return HttpResponseGone("Ce document a déjà été remplacé ou retiré.")
+    form = RetraitForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        motif = form.cleaned_data["motif"]
+        with transaction.atomic():
+            document = Document.objects.select_for_update().get(pk=document.pk)
+            if not document.est_courant:
+                return HttpResponseGone("Ce document a déjà été remplacé ou retiré.")
+            # Le retrait emporte les versions précédentes : sinon un document
+            # retiré pour données personnelles resterait lisible par l'ancienne.
+            retires = [document, *document.versions_precedentes()]
+            maintenant = timezone.now()
+            stockage = document.fichier.storage
+            for version in retires:
+                fichier = version.fichier.name
+                version.retire_le = maintenant
+                version.retire_par = request.user
+                version.motif_retrait = motif
+                version.save(update_fields=["retire_le", "retire_par", "motif_retrait"])
+                journaliser(
+                    Action.DOCUMENT_RETIRE,
+                    acteur=request.user,
+                    objet=version,
+                    empreinte=version.empreinte,
+                    motif=motif,
+                )
+                # Effacement après validation : un retrait annulé garde son fichier.
+                transaction.on_commit(lambda nom=fichier: stockage.delete(nom))
+        return redirect("documents:liste")
+    return render(
+        request,
+        "documents/retirer.html",
+        {"form": form, "document": document, "versions": list(document.versions_precedentes())},
+        status=400 if form.errors else 200,
+    )
+
+
 @exige(LIRE, "documents")
 def telecharger(request, pk):
     document = get_object_or_404(Document, pk=pk)
     verifier(request.user, LIRE, "documents", document)
+    if document.retire_le is not None:
+        return HttpResponseGone("Ce document a été retiré.")
     # Toujours en pièce jointe, jamais affiché dans la page (ADR, fichier piégé).
     reponse = FileResponse(
         document.fichier.open("rb"),

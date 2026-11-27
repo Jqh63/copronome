@@ -7,4 +7,6 @@ urlpatterns = [
     path("", views.liste, name="liste"),
     path("deposer/", views.deposer, name="deposer"),
     path("<int:pk>/fichier/", views.telecharger, name="telecharger"),
+    path("<int:pk>/remplacer/", views.remplacer, name="remplacer"),
+    path("<int:pk>/retirer/", views.retirer, name="retirer"),
 ]

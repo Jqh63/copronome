@@ -8,6 +8,27 @@ from documents.models import Document, empreinte_sha256, volume_occupe
 from documents.validation import detecter_type
 
 
+def valider_fichier(fichier):
+    """Taille, quota et type détecté sur le contenu ; renvoie le type MIME."""
+    if fichier.size > settings.DOCUMENT_TAILLE_MAX:
+        raise forms.ValidationError(
+            f"Fichier trop gros (maximum {filesizeformat(settings.DOCUMENT_TAILLE_MAX)})."
+        )
+    if volume_occupe() + fichier.size > settings.DOCUMENTS_QUOTA:
+        raise forms.ValidationError(
+            f"Espace de stockage plein (quota {filesizeformat(settings.DOCUMENTS_QUOTA)})."
+        )
+    return detecter_type(fichier)
+
+
+def renseigner_fichier(document, fichier, type_mime):
+    document.type_mime = type_mime
+    document.taille = fichier.size
+    document.empreinte = empreinte_sha256(fichier)
+    document.nom_origine = os.path.basename(fichier.name)[:200]
+    document.fichier = fichier  # renommé par upload_to (nom aléatoire)
+
+
 class DocumentForm(forms.ModelForm):
     fichier = forms.FileField()
 
@@ -27,25 +48,37 @@ class DocumentForm(forms.ModelForm):
 
     def clean_fichier(self):
         fichier = self.cleaned_data["fichier"]
-        if fichier.size > settings.DOCUMENT_TAILLE_MAX:
-            raise forms.ValidationError(
-                f"Fichier trop gros (maximum {filesizeformat(settings.DOCUMENT_TAILLE_MAX)})."
-            )
-        if volume_occupe() + fichier.size > settings.DOCUMENTS_QUOTA:
-            raise forms.ValidationError(
-                f"Espace de stockage plein (quota {filesizeformat(settings.DOCUMENTS_QUOTA)})."
-            )
-        self.type_mime = detecter_type(fichier)
+        self.type_mime = valider_fichier(fichier)
         return fichier
 
     def save(self, commit=True):
         document = super().save(commit=False)
-        fichier = self.cleaned_data["fichier"]
-        document.type_mime = self.type_mime
-        document.taille = fichier.size
-        document.empreinte = empreinte_sha256(fichier)
-        document.nom_origine = os.path.basename(fichier.name)[:200]
-        document.fichier = fichier  # renommé par upload_to (nom aléatoire)
+        renseigner_fichier(document, self.cleaned_data["fichier"], self.type_mime)
         if commit:
             document.save()
         return document
+
+
+class RemplacementForm(forms.Form):
+    """Nouvelle version d'un document : titre, catégorie, visibilité et
+    bâtiment sont repris de l'ancienne (le périmètre ne change pas en route)."""
+
+    fichier = forms.FileField()
+    date_document = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={"type": "date"}),
+        help_text="Date portée par le document",
+    )
+
+    def clean_fichier(self):
+        fichier = self.cleaned_data["fichier"]
+        self.type_mime = valider_fichier(fichier)
+        return fichier
+
+
+class RetraitForm(forms.Form):
+    motif = forms.CharField(
+        max_length=500,
+        widget=forms.Textarea(attrs={"rows": 3}),
+        help_text="Obligatoire, gardé dans le journal (ex. : déposé par erreur, données personnelles).",
+    )
