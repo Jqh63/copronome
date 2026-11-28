@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block titre %}Les mots de la copropriété — {{ nom_instance }}{% endblock %}
+{% block contenu %}
+<h1>Les mots de la copropriété</h1>
+<p>Les termes que vous croiserez dans Copronome et dans les documents de la copropriété, en quelques mots.</p>
+<dl>
+  <dt id="lot">Lot</dt>
+  <dd>Ce que possède un copropriétaire : un appartement, une cave, un parking… avec sa part des parties communes.</dd>
+  <dt id="tantiemes">Tantièmes (part des charges)</dt>
+  <dd>La part de chaque lot dans les dépenses communes, exprimée sur un total (par exemple 120 sur 10 000). Elle figure dans le règlement de copropriété.</dd>
+  <dt id="cle">Clé de répartition</dt>
+  <dd>Une règle de partage d'une dépense : charges générales, ascenseur, bâtiment, eau… Chaque clé a ses propres tantièmes.</dd>
+  <dt id="syndic">Syndic</dt>
+  <dd>Celui qui gère la copropriété au quotidien et la représente : un professionnel, ou un copropriétaire (syndic non professionnel).</dd>
+  <dt id="cs">Conseil syndical</dt>
+  <dd>Des copropriétaires élus qui assistent le syndic et contrôlent sa gestion.</dd>
+  <dt id="controleur">Contrôleur des comptes</dt>
+  <dd>La personne désignée pour vérifier les comptes de la copropriété.</dd>
+  <dt id="ag">Assemblée générale</dt>
+  <dd>La réunion de tous les copropriétaires, au moins une fois par an : on y vote le budget, les travaux et le choix du syndic.</dd>
+  <dt id="index">Index d'un compteur</dt>
+  <dd>Le chiffre affiché par le compteur d'eau ; la consommation est la différence entre deux relevés.</dd>
+</dl>
+{% endblock %}

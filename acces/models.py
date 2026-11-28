@@ -17,7 +17,7 @@ from copro.models import Batiment, Personne
 
 
 class Role(models.TextChoices):
-    ADMIN = "admin", "Admin technique"
+    ADMIN = "admin", "Administrateur technique"
     PRESIDENT = "president", "Président du conseil syndical"
     MEMBRE_CS = "membre_cs", "Membre du conseil syndical"
     CONTROLEUR = "controleur", "Contrôleur des comptes"

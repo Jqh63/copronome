@@ -2,7 +2,7 @@
 {% block titre %}Eau — {{ nom_instance }}{% endblock %}
 {% block contenu %}
 <h1>Compteurs d'eau</h1>
-<p>Copronome relève les index et sort les m³ par lot ; la répartition en euros se fait dans le logiciel de comptabilité, sur une clé dont les tantièmes sont ces m³.</p>
+<p>Copronome note les chiffres relevés sur chaque compteur et en déduit les m³ consommés par lot. Le partage de la facture en euros se fait ensuite dans le logiciel de comptabilité, au prorata de ces m³.</p>
 {% if peut_ecrire %}
 <p><a href="{% url 'eau:creer_compteur' %}">Nouveau compteur</a>{% for batiment in batiments_tournee %} · <a href="{% url 'eau:tournee' batiment.pk %}">Tournée {{ batiment.nom }}</a>{% endfor %}</p>
 {% endif %}

@@ -11,6 +11,12 @@ def accueil(request):
 
 
 @public
+def mots(request):
+    """Les mots de la copropriété, en français courant (revue du 2026-11-27)."""
+    return render(request, "mots.html")
+
+
+@public
 def sante(request):
     """Sonde de supervision : 200 si la base répond, 503 sinon."""
     try:

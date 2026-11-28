@@ -11,6 +11,7 @@ admin.site.login = secure_admin_login(admin.site.login)
 urlpatterns = [
     path("", views.accueil, name="accueil"),
     path("sante/", views.sante, name="sante"),
+    path("mots/", views.mots, name="mots"),
     path("lots/", copro_views.liste_lots, name="lots"),
     path("incidents/", include("incidents.urls")),
     path("documents/", include("documents.urls")),

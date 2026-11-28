@@ -3,7 +3,7 @@
 {% block contenu %}
 <h1>Lots</h1>
 <table>
-  <thead><tr><th>Lot</th><th>Bâtiment</th><th>Type</th><th>Étage</th><th>Tantièmes</th></tr></thead>
+  <thead><tr><th>Lot</th><th>Bâtiment</th><th>Type</th><th>Étage</th><th><a href="{% url 'mots' %}#tantiemes">Part des charges</a></th></tr></thead>
   <tbody>
   {% for lot in lots %}
     <tr>

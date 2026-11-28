@@ -1,7 +1,7 @@
 {% extends "base.html" %}
-{% block titre %}Lien iCal — {{ nom_instance }}{% endblock %}
+{% block titre %}Lien d'abonnement à l'agenda — {{ nom_instance }}{% endblock %}
 {% block contenu %}
-<h1>Votre lien iCal</h1>
+<h1>Votre lien d'abonnement à l'agenda</h1>
 <p>Copiez-le maintenant dans votre application d'agenda (« s'abonner à un calendrier ») : il ne sera plus affiché.</p>
 <p><code>{{ lien }}</code></p>
 <p><a href="{% url 'agenda:liste' %}">Retour à l'agenda</a></p>
