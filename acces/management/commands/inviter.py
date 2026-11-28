@@ -8,7 +8,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.urls import reverse
 
 from acces.models import Invitation, Role
-from copro.identite import expediteur, nom_affiche
+from copro.identite import expediteur, nom_affiche, pied_de_mail
 from copro.models import Batiment
 
 
@@ -33,7 +33,9 @@ class Command(BaseCommand):
             f"Invitation : {nom_affiche()}",
             f"Vous êtes invité·e sur l'espace de {nom_affiche()}, géré avec Copronome "
             f"({invitation.get_role_display()}).\n\n"
-            f"Créez votre compte avec ce lien, valable 7 jours et utilisable une seule fois :\n{lien}\n",
+            f"Créez votre compte avec ce lien, valable 7 jours et utilisable une seule fois :\n{lien}\n\n"
+            f"Vous n'attendiez pas cette invitation ? Ignorez ce mail : sans le lien, rien n'est créé.\n\n"
+            + pied_de_mail(),
             expediteur(),
             [invitation.email],
         )

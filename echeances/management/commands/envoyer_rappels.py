@@ -16,7 +16,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from acces.droits import ECRIRE, peut
-from copro.identite import expediteur, nom_affiche
+from copro.identite import expediteur, nom_affiche, pied_de_mail
 from echeances.models import Echeance
 from echeances.views import visibles
 
@@ -38,7 +38,7 @@ class Command(BaseCommand):
         if not dues:
             return
         ids_dues = {e.pk for e in dues}
-        nom, de = nom_affiche(), expediteur()
+        nom, de, pied = nom_affiche(), expediteur(), pied_de_mail()
         envoyes, rappelees = 0, set()
         for utilisateur in get_user_model().objects.filter(is_active=True).prefetch_related("affectations"):
             if not peut(utilisateur, ECRIRE, "echeances"):
@@ -53,7 +53,7 @@ class Command(BaseCommand):
                 lignes.append(f"- {e.prochaine_le:%d/%m/%Y} ({etat}) : {e.titre}{lien}")
             send_mail(
                 f"{nom} : {len(siennes)} échéance(s) à traiter",
-                "Échéances arrivées dans leur fenêtre de rappel :\n\n" + "\n".join(lignes) + "\n",
+                "Échéances arrivées dans leur fenêtre de rappel :\n\n" + "\n".join(lignes) + "\n\n" + pied,
                 de,
                 [utilisateur.email],
             )

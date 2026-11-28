@@ -26,6 +26,16 @@ def expediteur():
     return formataddr((nom, adresse))
 
 
+def pied_de_mail(copropriete=None):
+    """Pied commun à tous les mails de l'instance (invitation, rappels, allauth) :
+    qui écrit, et la règle qui rend un hameçonnage reconnaissable."""
+    return (
+        "-- \n"
+        f"{nom_affiche(copropriete)}, espace géré avec {PRODUIT}\n"
+        "Nous ne vous demandons jamais votre mot de passe par mail.\n"
+    )
+
+
 def contexte(request):
     """Processeur de contexte : identité de l'instance, une requête par page."""
     copropriete = Copropriete.courante()
