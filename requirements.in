@@ -5,3 +5,5 @@ Django>=5.2.19,<5.3
 psycopg[binary]>=3.3,<3.4
 django-allauth[mfa]==65.23.0
 gunicorn>=27,<28
+# Statiques servis par l'app (hachés, compressés, cache long) : aucun frontal à configurer.
+whitenoise>=6.9,<7

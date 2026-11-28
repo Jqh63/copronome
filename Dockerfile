@@ -14,14 +14,19 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --require-hashes -r requirements.txt \
     && useradd --system --uid 10001 --no-create-home --shell /usr/sbin/nologin copronome \
-    && mkdir -p /srv/static /srv/media \
-    && chown copronome:copronome /srv/static /srv/media
+    && mkdir -p /srv/media \
+    && chown copronome:copronome /srv/media
 
 COPY --chown=root:root . .
 RUN chmod 0755 docker/entrypoint.sh
 
 ENV COPRONOME_STATIC_ROOT=/srv/static \
     COPRONOME_MEDIA_ROOT=/srv/media
+
+# Statiques collectés une fois pour toutes dans l'image (lecture seule,
+# servis par l'app) ; clé et hôte factices : rien n'est servi pendant le build.
+RUN COPRONOME_SECRET_KEY=build-seulement COPRONOME_ALLOWED_HOSTS=build.invalid \
+    python manage.py collectstatic --noinput --verbosity 0
 
 USER copronome
 EXPOSE 8000

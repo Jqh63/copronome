@@ -2,7 +2,8 @@
 # Démarrage du conteneur Copronome. Rôles :
 #   migrer   (rôle Postgres propriétaire, service ponctuel) migrations, table
 #            de cache, rôle restreint de l'app et ses droits
-#   web      fichiers statiques, puis gunicorn (rôle Postgres restreint)
+#   web      gunicorn (rôle Postgres restreint) ; il sert aussi les fichiers
+#            statiques (WhiteNoise), collectés au build de l'image
 #   rappels  `envoyer_rappels` au démarrage puis toutes les
 #            COPRONOME_RAPPELS_INTERVALLE secondes (la commande est idempotente
 #            dans la journée), puis `purger_anciens --appliquer` (copro.purge) ;
@@ -20,7 +21,6 @@ migrer)
     exec python manage.py appliquer_droits_base
     ;;
 web)
-    python manage.py collectstatic --noinput --clear --verbosity 0
     exec gunicorn copronome.wsgi:application \
         --bind 0.0.0.0:8000 \
         --workers "${COPRONOME_GUNICORN_WORKERS:-2}" \
