@@ -76,7 +76,10 @@ Chaque copropriété est une instance (sa base, ses fichiers, son adresse `https
 ```bash
 python -m exploitation.registre verifier <registre.toml>   # 0 = valide ; sinon toutes les erreurs
 python -m exploitation.registre nouvel-id                  # identifiant d'une nouvelle instance
+python -m exploitation.creer <registre.toml> <racine> [<id> ...]   # crée ou recale <racine>/<id>/instance.env
 ```
+
+`creer` est idempotent : pour chaque instance active (ou celles nommées), il écrit `<racine>/<id>/instance.env` (mode 600) avec les variables du contrat dérivées du registre (identifiant, `COPRONOME_DOMAINE` = `<slug>.<domaine>`, URL publique, base et rôles Postgres `copronome_<id>` et `copronome_<id>_app`) et des secrets propres à l'instance (`SECRET_KEY`, mots de passe des deux rôles), générés une seule fois et jamais régénérés. Rejoué après un renommage, il recale l'adresse sans toucher aux secrets ; une variable ajoutée à la main (identifiants mail) est conservée.
 
 ## Contribuer : aucun secret, aucune donnée réelle
 
