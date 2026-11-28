@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block titre %}Eau — Copronome{% endblock %}
+{% block contenu %}
+<h1>Compteurs d'eau</h1>
+<p>Copronome relève les index et sort les m³ par lot ; la répartition en euros se fait dans le logiciel de comptabilité, sur une clé dont les tantièmes sont ces m³.</p>
+{% if peut_ecrire %}
+<p><a href="{% url 'eau:creer_compteur' %}">Nouveau compteur</a>{% for batiment in batiments_tournee %} · <a href="{% url 'eau:tournee' batiment.pk %}">Tournée {{ batiment.nom }}</a>{% endfor %}</p>
+{% endif %}
+<table>
+  <thead><tr><th>Compteur</th><th>Lieu</th><th>Emplacement</th><th>Dernier relevé</th><th>Anomalies</th></tr></thead>
+  <tbody>
+  {% for ligne in lignes %}
+    <tr>
+      <td><a href="{% url 'eau:compteur' ligne.compteur.pk %}">{{ ligne.compteur.numero }}</a></td>
+      <td>{{ ligne.compteur.lieu }}</td>
+      <td>{{ ligne.compteur.emplacement }}</td>
+      <td>{% if ligne.dernier %}{{ ligne.dernier.releve.index }} m³ le {{ ligne.dernier.releve.releve_le|date:"d/m/Y" }} ({{ ligne.dernier.releve.get_source_display }}){% else %}aucun{% endif %}</td>
+      <td>{% if ligne.baisses %}<strong>{{ ligne.baisses }} index en baisse</strong>{% endif %}</td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="5">Aucun compteur.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+<h2>m³ par lot sur une période</h2>
+<form method="get" action="{% url 'eau:exporter' %}">{{ periode.as_p }}<button type="submit">Exporter (CSV)</button></form>
+{% endblock %}

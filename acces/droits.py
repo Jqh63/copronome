@@ -31,11 +31,12 @@ DOMAINES = {
     "documents",
     "agenda",
     "echeances",
+    "eau",  # compteurs et relevés d'index d'eau
     "ag",
     "comptes",  # comptes utilisateurs, affectations, invitations
     "audit",
 }
-METIER = {"structure", "personnes", "incidents", "documents", "agenda", "echeances", "ag"}
+METIER = {"structure", "personnes", "incidents", "documents", "agenda", "echeances", "eau", "ag"}
 
 # Table des droits par rôle : domaine -> actions. Reprend le tableau de l'ADR.
 # Les rôles syndic et copropriétaire n'ont encore aucun accès : leurs règles
@@ -46,8 +47,9 @@ DROITS = {
     Role.ADMIN: {d: {LIRE} for d in DOMAINES} | {"comptes": {LIRE, ECRIRE}},
     Role.PRESIDENT: {d: {LIRE, ECRIRE} for d in DOMAINES - {"audit"}} | {"audit": {LIRE}},
     Role.MEMBRE_CS: {d: {LIRE} for d in METIER}
-    | {d: {LIRE, ECRIRE} for d in ("incidents", "documents", "agenda", "echeances", "ag")},
-    Role.CONTROLEUR: {"documents": {LIRE}, "ag": {LIRE}},
+    | {d: {LIRE, ECRIRE} for d in ("incidents", "documents", "agenda", "echeances", "eau", "ag")},
+    # Contrôleur des comptes : lit les relevés qui fondent la clé eau.
+    Role.CONTROLEUR: {"documents": {LIRE}, "ag": {LIRE}, "eau": {LIRE}},
     Role.SYNDIC: {},
     Role.COPROPRIETAIRE: {},
 }

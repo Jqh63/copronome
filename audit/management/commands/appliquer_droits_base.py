@@ -15,7 +15,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import connection, transaction
 from psycopg import sql
 
-JOURNAUX = ["audit_journalaudit", "incidents_evenement", "echeances_realisation"]
+JOURNAUX = ["audit_journalaudit", "incidents_evenement", "echeances_realisation", "eau_releve"]
 LECTURE_SEULE = ["django_migrations"]
 
 
