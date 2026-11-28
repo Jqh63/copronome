@@ -22,8 +22,9 @@ class Categorie(models.TextChoices):
     # n'obligent pas un syndic non professionnel. Source : ANIL, « Copropriété :
     # dématérialisation des documents » (à jour au 2019-05-28) et INC, « le
     # contenu de l'espace sécurisé en ligne » (2019-08-13), concordants.
-    # Légifrance (JORFTEXT000038501555) signale une version de l'art. 1 en
-    # vigueur depuis le 2020-10-10, non lue (page protégée) : à relire.
+    # Art. 1 dans sa version en vigueur depuis le 2020-10-10 (LEGIARTI000042412719)
+    # lu le 2026-11-28 par l'API Légifrance : mêmes 9 catégories ; le 8° vise
+    # les PV des trois dernières AG annuelles appelées à connaître des comptes.
     #
     # Art. 1, ensemble des copropriétaires :
     REGLEMENT = "reglement", "Règlement de copropriété, état descriptif de division et modificatifs"
