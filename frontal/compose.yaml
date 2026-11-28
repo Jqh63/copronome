@@ -27,7 +27,7 @@ services:
     volumes:
       # Le dossier, pas le fichier : le générateur remplace le Caddyfile par
       # renommage (nouvel inode), qu'un montage de fichier ne verrait pas.
-      - ${COPRONOME_FRONTAL_CONF:?COPRONOME_FRONTAL_CONF : dossier du Caddyfile généré}:/etc/caddy:ro
+      - ${COPRONOME_FRONTAL_CONF:?dossier du Caddyfile généré manquant}:/etc/caddy:ro
       - data:/data
       - config:/config
     networks: [frontal]
