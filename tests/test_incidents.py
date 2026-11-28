@@ -70,6 +70,7 @@ ATTENDU = {  # (lire la liste, créer)
     Role.PRESIDENT: (200, 200),
     Role.MEMBRE_CS: (200, 200),
     Role.CONTROLEUR: (403, 403),
+    Role.SYNDIC_NON_PRO: (200, 200),
     Role.SYNDIC: (403, 403),
     Role.COPROPRIETAIRE: (403, 403),
 }

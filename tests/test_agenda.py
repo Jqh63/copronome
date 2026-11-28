@@ -39,6 +39,7 @@ ATTENDU = {
     Role.PRESIDENT: (200, 302),
     Role.MEMBRE_CS: (200, 302),
     Role.CONTROLEUR: (403, 403),
+    Role.SYNDIC_NON_PRO: (200, 302),
     Role.SYNDIC: (403, 403),
     Role.COPROPRIETAIRE: (403, 403),
 }

@@ -130,6 +130,7 @@ ATTENDU_LISTE = {
     Role.PRESIDENT: 200,
     Role.MEMBRE_CS: 200,
     Role.CONTROLEUR: 403,
+    Role.SYNDIC_NON_PRO: 200,
     Role.SYNDIC: 403,
     Role.COPROPRIETAIRE: 403,
 }
@@ -142,7 +143,7 @@ def test_matrice_role_echeances(client, demo, role):
     client.force_login(_compte(f"{role}@example.org", role))
     assert client.get(reverse("echeances:liste")).status_code == ATTENDU_LISTE[role]
     ecrit = client.post(reverse("echeances:realiser", args=[echeance.pk]), {"realisee_le": "2026-01-01"})
-    peut_ecrire = role in (Role.PRESIDENT, Role.MEMBRE_CS)
+    peut_ecrire = role in (Role.PRESIDENT, Role.MEMBRE_CS, Role.SYNDIC_NON_PRO)
     assert ecrit.status_code == (302 if peut_ecrire else 403)
     assert Realisation.objects.exists() == peut_ecrire
 

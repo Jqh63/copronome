@@ -227,13 +227,15 @@ ATTENDU = {  # rôle -> (liste, tournée)
     Role.PRESIDENT: (200, 200),
     Role.MEMBRE_CS: (200, 200),
     Role.CONTROLEUR: (200, 403),
+    Role.SYNDIC_NON_PRO: (200, 200),
     Role.SYNDIC: (403, 403),
     Role.COPROPRIETAIRE: (403, 403),
 }
 
 
-@pytest.mark.parametrize("role", list(ATTENDU))
+@pytest.mark.parametrize("role", list(Role))
 def test_droits_par_role(client, lieux, role):
+    assert set(ATTENDU) == set(Role), "chaque rôle doit avoir son attendu"
     client.force_login(_compte(f"{role}@example.org", role))
     liste = client.get(reverse("eau:liste")).status_code
     tournee = client.get(reverse("eau:tournee", args=[lieux["b"].pk])).status_code

@@ -55,7 +55,7 @@ class Categorie(models.TextChoices):
 class Visibilite(models.TextChoices):
     # Les rôles de chaque niveau sont fixés dans acces.droits (seul décideur).
     CS = "cs", "Conseil syndical"
-    COMPTES = "comptes", "Conseil syndical et contrôleur des comptes"
+    COMPTES = "comptes", "CS, contrôleur des comptes et syndic non professionnel"
     TOUS = "tous", "Tous les comptes"
 
 

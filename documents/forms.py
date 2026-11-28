@@ -41,8 +41,11 @@ class DocumentForm(forms.ModelForm):
             "valide_jusquau": forms.DateInput(attrs={"type": "date"}),
         }
 
-    def __init__(self, *args, batiments_visibles=None, **kwargs):
+    def __init__(self, *args, batiments_visibles=None, visibilites=None, **kwargs):
         super().__init__(*args, **kwargs)
+        if visibilites is not None:
+            champ = self.fields["visibilite"]
+            champ.choices = [(v, libelle) for v, libelle in champ.choices if v in visibilites]
         if batiments_visibles is not None:
             # Un membre limité à un bâtiment ne dépose que dans son périmètre.
             self.fields["batiment"].queryset = self.fields["batiment"].queryset.filter(
