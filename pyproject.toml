@@ -16,4 +16,4 @@ ignore = ["S101"]
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["S105", "S106"]  # mots de passe factices des tests
 # Outils d'exploitation : lancent docker et age du PATH de l'exploitant, arguments en liste (pas de shell).
-"exploitation/sauvegarder.py" = ["S603", "S607"]
+"exploitation/{sauvegarder,restaurer}.py" = ["S603", "S607"]
