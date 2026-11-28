@@ -18,7 +18,7 @@
   {% endfor %}
   </tbody>
 </table>
-<h2>Abonnement depuis votre agenda (iCal)</h2>
+<h2>Voir ces rendez-vous dans l'agenda de votre téléphone ou de votre messagerie</h2>
 <p>Le lien donne accès en lecture à l'agenda et aux échéances, sans connexion : ne le partagez pas.</p>
 <form method="post" action="{% url 'agenda:lien_ical' %}">{% csrf_token %}
   <button type="submit">{% if a_un_lien %}Remplacer mon lien (l'ancien cesse de fonctionner){% else %}Créer mon lien{% endif %}</button>
