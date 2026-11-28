@@ -69,6 +69,15 @@ docker/essai-conteneurs.sh                    # essai de bout en bout (rejoué e
 
 Variables propres au déploiement (défaut entre parenthèses) : `COPRONOME_DOMAINE` (`localhost`), `COPRONOME_URL_PUBLIQUE` (`https://localhost:8443`), `COPRONOME_PORT_HTTPS` (`8443`), `COPRONOME_CORPS_MAX_MO` (`21`, limite de corps de Caddy, à garder au-dessus de `COPRONOME_DOCUMENT_TAILLE_MAX_MO`), `COPRONOME_RAPPELS_INTERVALLE` (`86400` secondes), `COPRONOME_GUNICORN_WORKERS` (`2`), `COPRONOME_TRUSTED_PROXY_COUNT` (`1` derrière Caddy : IP du client pour la limite de tentatives de connexion), `COPRONOME_INSTANCE_ID` (`local`), `COPRONOME_DB_NAME` et `COPRONOME_DB_OWNER` (`copronome`). Plusieurs instances sous un même domaine (`<slug>.example.org`) : hôtes autorisés et origines CSRF sont un nom exact (joker refusé au démarrage), les cookies portent le préfixe `__Host-` (ni `Domain`, ni partage entre sous-domaines) et seuls le propriétaire et le rôle de l'app se connectent à la base (`REVOKE CONNECT … FROM PUBLIC`). Le journal d'accès de Caddy masque les jetons des URL (iCal, invitation, réinitialisation, confirmation) ; gunicorn n'en écrit pas.
 
+## Héberger plusieurs copropriétés : le registre des instances
+
+Chaque copropriété est une instance (sa base, ses fichiers, son adresse `https://<slug>.<domaine>`). Le registre des instances est un fichier TOML, une table `[[instance]]` par copropriété : identifiant opaque et immuable (il nomme la base, les rôles, les volumes et les sauvegardes), slug, nom, commune, état (`active`, `suspendue`, `supprimee`), anciens slugs. Un slug n'est jamais réattribué, même après une suppression ou un renommage ; les slugs d'infrastructure (`www`, `admin`, `api`, `mail`…) sont réservés. Le registre réel nomme des copropriétés : gardez-le hors du dépôt. Le modèle fictif est `exploitation/registre.exemple.toml`.
+
+```bash
+python -m exploitation.registre verifier <registre.toml>   # 0 = valide ; sinon toutes les erreurs
+python -m exploitation.registre nouvel-id                  # identifiant d'une nouvelle instance
+```
+
 ## Contribuer : aucun secret, aucune donnée réelle
 
 Avant le premier commit, dans votre clone :
