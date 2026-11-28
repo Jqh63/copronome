@@ -3,7 +3,7 @@
 Les URL d'iCal, d'invitation, de réinitialisation et de confirmation portent
 un jeton qui vaut accès. Django écrit le chemin des 404 et des 500
 (`django.request`) : sans ce filtre, le jeton atterrirait dans le journal.
-Même liste de préfixes que le filtre du journal d'accès de docker/Caddyfile.
+Le frontal (exploitation/frontal.py) masque les mêmes préfixes dans son journal d'accès.
 """
 
 import logging

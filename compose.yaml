@@ -1,10 +1,12 @@
-# Copronome en local ou sur un serveur : app (gunicorn), Postgres, Caddy,
-# rappels quotidiens. Configuration par .env à côté de ce fichier (modèle :
-# env.exemple) ; les trois secrets sont obligatoires, compose refuse sinon.
-#   docker compose up -d --build
-#   docker compose run --rm app inviter ...      (commandes manage.py)
-# Images tierces épinglées par digest ; seul Caddy est publié, l'app et la
-# base ne sont joignables que sur les réseaux internes.
+# Une instance Copronome (une copropriété) : app (gunicorn), Postgres,
+# rappels quotidiens. Configuration par un fichier d'environnement (modèle :
+# env.exemple ; sur un serveur, celui d'exploitation/creer.py) ; les trois
+# secrets sont obligatoires, compose refuse sinon. L'instance ne publie aucun
+# port : le frontal (frontal/compose.yaml, à démarrer d'abord) joint l'app
+# par le réseau partagé `copronome-frontal`, sous l'alias copronome-<id>.
+#   docker compose -p copronome-<id> --env-file <id>/instance.env up -d --build
+#   docker compose -p copronome-<id> --env-file ... run --rm app inviter ...
+# Images tierces épinglées par digest.
 
 # Deux rôles Postgres : le propriétaire (superutilisateur de l'image, mot de
 # passe COPRONOME_DB_PASSWORD) ne sert qu'au service ponctuel `migrer` ;
@@ -45,7 +47,7 @@ x-app: &app
     <<: *env
     COPRONOME_DB_USER: ${COPRONOME_DB_APP_USER:-copronome_app}
     COPRONOME_DB_PASSWORD: ${COPRONOME_DB_APP_PASSWORD:?COPRONOME_DB_APP_PASSWORD manquant dans .env}
-  networks: [base, web]
+  networks: [base, sortie]
 
 services:
   migrer:
@@ -66,6 +68,11 @@ services:
   app:
     <<: *app
     command: web
+    networks:
+      base: {}
+      sortie: {}
+      frontal:
+        aliases: ["copronome-${COPRONOME_INSTANCE_ID:-local}"]
     volumes:
       - media:/srv/media
     depends_on:
@@ -103,35 +110,18 @@ services:
       timeout: 5s
       retries: 10
 
-  caddy:
-    # épinglée par digest
-    image: caddy:2-alpine@sha256:003a97808e781aa9f7e75cc2f43d34d461099031faf5e20faefb9f61126836f0
-    restart: unless-stopped
-    cap_drop: [ALL]
-    cap_add: [NET_BIND_SERVICE]
-    security_opt: ["no-new-privileges:true"]
-    environment:
-      COPRONOME_DOMAINE: ${COPRONOME_DOMAINE:-localhost}
-      COPRONOME_CORPS_MAX_MO: ${COPRONOME_CORPS_MAX_MO:-21}
-    ports:
-      - "${COPRONOME_PORT_HTTPS:-8443}:443"
-    volumes:
-      - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy-data:/data
-      - caddy-config:/config
-    depends_on:
-      app:
-        condition: service_healthy
-    networks: [web]
-
 networks:
   # La base n'a aucune sortie : seuls app et rappels la joignent.
   base:
     internal: true
-  web: {}
+  # Sortie de l'app et des rappels (relais mail).
+  sortie: {}
+  # Réseau du frontal, partagé par les instances du serveur : une app y est
+  # joignable par les autres instances, comme par Internet via le frontal.
+  frontal:
+    external: true
+    name: copronome-frontal
 
 volumes:
   db:
   media:
-  caddy-data:
-  caddy-config:

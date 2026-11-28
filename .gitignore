@@ -10,6 +10,11 @@
 /backups/
 *.sqlite3
 *.dump
+# Registre réel, instances et frontal générés (exploitation/, README)
+/registre.toml
+/instances/
+/frontal/conf/
+instance.env
 
 # Python
 __pycache__/
