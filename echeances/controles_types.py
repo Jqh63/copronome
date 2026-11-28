@@ -2,24 +2,29 @@
 
 N'entre ici qu'une périodicité **lue sur une source officielle** (Légifrance
 ou service-public.gouv.fr), avec la source dans `reference` (CLAUDE.md,
-principes de code). Lecture du 2026-11-27 :
+principes de code). Lecture du 2026-11-27 ; textes du décret 67-223, du CSP
+R1334-27 et du CCH R134-11 lus le 2026-11-28 par l'API Légifrance (PISTE,
+bac à sable, base du 2026-11-26) :
 
 - DPE collectif : CCH L126-31 (version en vigueur depuis le 2026-05-28),
   « renouvelé ou mis à jour tous les dix ans » ; calendrier par nombre de lots
   sur service-public F37504.
 - Projet de plan pluriannuel de travaux : loi 65-557 art. 14-2 I, « actualisé
   tous les dix ans » ; service-public F36760.
-- Mandat du syndic : service-public F2608, « 3 ans maximum » (décret 67-223
-  art. 28 cité par la fiche, non lu).
-- Mandat du conseil syndical : service-public F2610, « au maximum 3 ans »
-  (décret 67-223 art. 22 à 27 cités par la fiche, non lus).
-- Amiante, liste A en surveillance périodique : service-public F742,
-  « nouvelle évaluation […] dans un délai maximal de 3 ans » (CSP R1334-14 à
-  R1334-29-9 cités, article précis non lu).
+- Mandat du syndic : décret 67-223 art. 28 (version en vigueur depuis le
+  2020-07-04), « la durée des fonctions du syndic ne peut excéder trois
+  années » ; une année au plus pendant le délai décennal si le syndic ou un
+  proche a participé à la construction ; service-public F2608.
+- Mandat du conseil syndical : décret 67-223 art. 22 (en vigueur depuis le
+  2004-09-01), « ne peut excéder trois années renouvelables » ;
+  service-public F2610.
+- Amiante, liste A : CSP R1334-27 1° (en vigueur depuis le 2012-02-01),
+  évaluation périodique « dans un délai maximal de trois ans » à compter du
+  rapport de repérage ou de la dernière évaluation, ou à toute modification
+  substantielle de l'ouvrage ; service-public F742.
 
-- Ascenseur, contrôle technique : service-public F10538 (vérifiée le
-  2026-05-15), « tous les 5 ans » ; références CCH R134-6 à R134-13, article
-  précis non lu. La visite d'entretien toutes les 6 semaines relève du contrat
+- Ascenseur, contrôle technique : CCH R134-11 (en vigueur depuis le
+  2026-05-15), « tous les cinq ans » ; service-public F10538. La visite d'entretien toutes les 6 semaines relève du contrat
   de l'ascensoriste, pas d'une échéance du CS.
 - Ramonage : CSP R1331-71 (en vigueur depuis le 2023-10-01, lu sur
   Légifrance), « au moins tous les douze mois » ; appareils collectifs « au
@@ -86,15 +91,18 @@ CONTROLES_TYPES = (
         titre="Fin du mandat du syndic",
         type=Echeance.Type.MANDAT,
         periodicite_mois=36,
-        reference="service-public.gouv.fr F2608 (décret 67-223 art. 28)",
-        notes="Durée maximale ; saisir la durée votée en AG si elle est plus courte.",
+        reference="Décret 67-223 art. 28 ; service-public.gouv.fr F2608",
+        notes=(
+            "Durée maximale ; saisir la durée votée en AG si elle est plus courte. "
+            "Un an au plus pendant les dix ans suivant la réception si le syndic a participé à la construction."
+        ),
     ),
     ControleType(
         code="mandat-cs",
         titre="Fin du mandat des membres du conseil syndical",
         type=Echeance.Type.MANDAT,
         periodicite_mois=36,
-        reference="service-public.gouv.fr F2610 (décret 67-223 art. 22 à 27)",
+        reference="Décret 67-223 art. 22 ; service-public.gouv.fr F2610",
         notes="Durée maximale ; le règlement de copropriété ou l'AG peut fixer une durée plus courte.",
     ),
     ControleType(
@@ -102,7 +110,7 @@ CONTROLES_TYPES = (
         titre="Amiante : nouvelle évaluation des matériaux de la liste A",
         type=Echeance.Type.CONTROLE,
         periodicite_mois=36,
-        reference="service-public.gouv.fr F742 (CSP art. R1334-14 à R1334-29-9)",
+        reference="CSP art. R1334-27 ; service-public.gouv.fr F742",
         notes=(
             "Seulement si le dossier technique amiante classe des matériaux de la liste A "
             "en surveillance périodique. Aucune périodicité fixée pour la liste B."
@@ -113,7 +121,7 @@ CONTROLES_TYPES = (
         titre="Ascenseur : contrôle technique",
         type=Echeance.Type.CONTROLE,
         periodicite_mois=60,
-        reference="service-public.gouv.fr F10538 (CCH art. R134-6 à R134-13)",
+        reference="CCH art. R134-11 ; service-public.gouv.fr F10538",
         notes=(
             "Une échéance par ascenseur. Prévenir les occupants par affichage sur la porte "
             "quelques jours avant le contrôle."
