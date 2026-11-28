@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block titre %}{{ compteur }} — Copronome{% endblock %}
+{% block contenu %}
+<h1>{{ compteur }}</h1>
+<dl>
+  <dt>Lieu</dt><dd>{{ compteur.lieu }}</dd>
+  {% if compteur.emplacement %}<dt>Emplacement</dt><dd>{{ compteur.emplacement }}</dd>{% endif %}
+  <dt>État</dt><dd>{% if compteur.actif %}en service{% else %}déposé{% endif %}</dd>
+</dl>
+<h2>Relevés</h2>
+<table>
+  <thead><tr><th>Date</th><th>Index (m³)</th><th>Source</th><th>Depuis le précédent</th><th>Note</th>{% if peut_ecrire %}<th></th>{% endif %}</tr></thead>
+  <tbody>
+  {% for ligne in historique %}
+    <tr>
+      <td>{{ ligne.releve.releve_le|date:"d/m/Y" }}</td>
+      <td>{{ ligne.releve.index }}</td>
+      <td>{{ ligne.releve.get_source_display }}</td>
+      <td>{% if ligne.m3 is not None %}{{ ligne.m3 }} m³ en {{ ligne.jours }} jours{% if ligne.baisse %} <strong>index en baisse</strong>{% endif %}{% endif %}</td>
+      <td>{{ ligne.releve.note }}{% if ligne.releve.corrige %} (corrige le relevé du {{ ligne.releve.corrige.releve_le|date:"d/m/Y" }} : {{ ligne.releve.corrige.index }}){% endif %}</td>
+      {% if peut_ecrire %}<td><a href="?corrige={{ ligne.releve.pk }}">Corriger</a></td>{% endif %}
+    </tr>
+  {% empty %}
+    <tr><td colspan="6">Aucun relevé.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% if peut_ecrire %}
+<h2>{% if corrige %}Corriger le relevé du {{ corrige.releve_le|date:"d/m/Y" }} ({{ corrige.index }} m³){% else %}Nouveau relevé{% endif %}</h2>
+<form method="post" action="{% url 'eau:ajouter_releve' compteur.pk %}">{% csrf_token %}
+  {% if corrige %}<input type="hidden" name="corrige" value="{{ corrige.pk }}">{% endif %}
+  {{ form.as_p }}<button type="submit">Enregistrer</button>
+</form>
+{% if compteur.actif %}
+<form method="post" action="{% url 'eau:deposer' compteur.pk %}">{% csrf_token %}<button type="submit">Déclarer le compteur déposé</button></form>
+{% endif %}
+{% endif %}
+{% endblock %}

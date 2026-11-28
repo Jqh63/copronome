@@ -26,6 +26,7 @@ MODULES_APP = (
     "documents.",
     "echeances.",
     "agenda.",
+    "eau.",
     "audit.",
 )
 

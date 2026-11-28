@@ -8,7 +8,7 @@ Logiciel libre de gestion de copropriété, pensé pour le **conseil syndical** 
 
 Par couches, dans cet ordre :
 
-1. **Fonctionnement du conseil syndical** : bâtiments, lots et tantièmes, personnes, incidents et suivi des demandes au syndic, documents, agenda, échéances réglementaires.
+1. **Fonctionnement du conseil syndical** : bâtiments, lots et tantièmes, personnes, incidents et suivi des demandes au syndic, documents, agenda, échéances réglementaires, relevés d'index des compteurs d'eau (tournée par bâtiment, index en baisse signalés, m³ par lot exportés pour la clé eau du logiciel de comptabilité ; Copronome ne répartit pas l'eau en euros).
 2. **Syndic coopératif** : assemblées générales (convocation, vote par correspondance, majorités, procès-verbal), contrats, sinistres, carnet d'entretien.
 3. **Comptabilité** : d'abord par interfaçage avec [Diacamma Syndic](https://www.diacamma.org/), logiciel libre existant.
 
@@ -52,7 +52,7 @@ En production, la configuration se lit dans les variables `COPRONOME_*` (modèle
 
 ## Lancer avec Docker Compose
 
-`compose.yaml` démarre l'app (gunicorn), Postgres, Caddy (TLS, fichiers statiques) et les rappels d'échéances quotidiens, suivis de la purge des anciens copropriétaires et occupants : coordonnées effacées 5 ans après la fin de leur dernier lien avec un lot (délai de prescription, loi de 1965 art. 42 et code civil art. 2224 ; détail dans `copro/purge.py`), jamais pour une personne liée à un compte actif. Seul Caddy est publié ; la base n'a aucune sortie réseau. Un service ponctuel `migrer` applique les migrations sous le rôle Postgres propriétaire, puis crée le rôle restreint de l'app (`manage.py appliquer_droits_base`) : ni superutilisateur ni propriétaire, sans UPDATE ni DELETE sur les journaux (audit, incidents, échéances), qu'un trigger protège aussi.
+`compose.yaml` démarre l'app (gunicorn), Postgres, Caddy (TLS, fichiers statiques) et les rappels d'échéances quotidiens, suivis de la purge des anciens copropriétaires et occupants : coordonnées effacées 5 ans après la fin de leur dernier lien avec un lot (délai de prescription, loi de 1965 art. 42 et code civil art. 2224 ; détail dans `copro/purge.py`), jamais pour une personne liée à un compte actif. Seul Caddy est publié ; la base n'a aucune sortie réseau. Un service ponctuel `migrer` applique les migrations sous le rôle Postgres propriétaire, puis crée le rôle restreint de l'app (`manage.py appliquer_droits_base`) : ni superutilisateur ni propriétaire, sans UPDATE ni DELETE sur les journaux (audit, incidents, échéances, relevés d'eau), qu'un trigger protège aussi.
 
 ```bash
 # .env à côté de compose.yaml (jamais versionné), au minimum :
