@@ -10,7 +10,8 @@
 # sonde, les en-têtes de sécurité, les statiques servis par l'app, la limite
 # de corps (413), l'absence de jeton dans le journal (avec contrôle positif),
 # le rôle Postgres restreint, les cookies __Host- et les rappels, puis la
-# sauvegarde chiffrée de A (exploitation/sauvegarder.py, `age` requis). Projets
+# sauvegarde chiffrée de A (exploitation/sauvegarder.py, `age` requis) et sa
+# restauration dans une instance jetable R (exploitation/restaurer.py). Projets
 # compose isolés, détruits à la sortie (volumes compris).
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -20,6 +21,7 @@ HTTP=18080
 DOMAINE=copro.example.org
 A=iessai0000000a
 B=iessai0000000b
+R=iessai0000000r
 HOTE_A="tilleuls-essai.$DOMAINE"
 HOTE_B="parc-essai.$DOMAINE"
 ANCIEN_A="ancien-tilleuls-essai.$DOMAINE"
@@ -41,11 +43,11 @@ echec() {
     echo "ECHEC : $*" >&2
     frontal logs --no-color --tail 40 >&2 || true
     pg logs --no-color --tail 40 >&2 || true
-    for id in $A $B; do instance "$id" logs --no-color --tail 40 >&2 || true; done
+    for id in $A $B $R; do instance "$id" logs --no-color --tail 40 >&2 || true; done
     exit 1
 }
 menage() {
-    for id in $A $B; do instance "$id" down -v --remove-orphans >/dev/null 2>&1 || true; done
+    for id in $A $B $R; do instance "$id" down -v --remove-orphans >/dev/null 2>&1 || true; done
     frontal down -v --remove-orphans >/dev/null 2>&1 || true
     pg down -v --remove-orphans >/dev/null 2>&1 || true
     rm -rf "$racine"
@@ -220,6 +222,20 @@ done
 # autre clé échoue.
 temoin="temoin-$(openssl rand -hex 6)"
 instance $A exec -T app python -c "open('/srv/media/$temoin.txt', 'w').write('$temoin')" || echec "dépôt du témoin"
+instance $A exec -T app python manage.py copropriete --nom "Essai A" --commune Exempleville --code-insee 99998 \
+    >/dev/null || echec "identité de A"
+# Empreinte des données d'une instance : comparée après restauration.
+donnees() {
+    instance "$1" exec -T app python manage.py shell <<'PY'
+from django.db import connection
+with connection.cursor() as c:
+    c.execute("SELECT nom FROM copro_copropriete")
+    noms = [r[0] for r in c.fetchall()]
+    c.execute("SELECT count(*) FROM audit_journalaudit")
+    print("NOMS=%s AUDIT=%s" % (noms, c.fetchone()[0]))
+PY
+}
+avant=$(donnees $A) || echec "données de A"
 age-keygen -o "$racine/cle-$A.txt" 2>/dev/null
 age-keygen -o "$racine/autre-cle.txt" 2>/dev/null
 echo "COPRONOME_SAUVEGARDE_DESTINATAIRE=$(age-keygen -y "$racine/cle-$A.txt")" >>"$racine/$A/instance.env"
@@ -246,5 +262,54 @@ m = json.loads((d / "MANIFESTE").read_text())
 for nom, attendu in m["parties"].items():
     assert hashlib.sha256((d / nom).read_bytes()).hexdigest() == attendu["sha256"], nom
 PY
+
+# Restauration testée (ADR § 9) : la sauvegarde de A dans une instance jetable
+# R, créée par le même chemin qu'une vraie (registre, creer, pg_hba rechargé,
+# provisionnement), base et volume vides. Les données, le témoin, les droits
+# du rôle de l'app de R et le trigger d'ajout seul doivent revenir ; une
+# sauvegarde altérée et une cible non vide sont refusées.
+cat >>"$racine/registre.toml" <<FIN
+
+[[instance]]
+id = "$R"
+slug = "restauration-essai"
+nom = "Essai R"
+commune = "Exempleville"
+etat = "active"
+FIN
+python3 -m exploitation.creer "$racine/registre.toml" "$racine" "$R" >/dev/null || echec "création de R"
+python3 -m exploitation.postgres configurer "$racine/registre.toml" "$racine" >/dev/null || echec "pg_hba avec R"
+pg exec -T -u postgres postgres psql -q -c 'SELECT pg_reload_conf()' >/dev/null || echec "rechargement du pg_hba"
+provisionner $R || echec "provisionnement de R"
+instance $R create >/dev/null 2>&1 || echec "création des conteneurs de R"
+restaurer() { python3 -m exploitation.restaurer "$1" "$racine/cle-$A.txt" "$racine/$R/instance.env" --projet "copronome-essai-$R"; }
+alteree="$racine/sauvegarde-alteree"
+cp -r "$sauvegarde" "$alteree" && printf 'x' >>"$alteree/base.dump.age"
+if restaurer "$alteree" 2>/dev/null; then echec "restauration d'une sauvegarde altérée acceptée"; fi
+restaurer "$sauvegarde" || echec "restauration de A dans R"
+if restaurer "$sauvegarde" 2>/dev/null; then echec "restauration par-dessus une base non vide acceptée"; fi
+instance $R up -d --wait --wait-timeout 180 || echec "démarrage de R restaurée"
+apres=$(donnees $R) || echec "données de R"
+grep -qF "NOMS=['Essai A']" <<<"$avant" || echec "contrôle positif : identité de A absente avant sauvegarde : $avant"
+[ "$apres" = "$avant" ] || echec "R restaurée : $apres au lieu de $avant"
+instance $R exec -T app python - "$temoin" <<'PY' || echec "R restaurée : fichiers"
+import pathlib, sys
+t = sys.argv[1]
+assert pathlib.Path(f"/srv/media/{t}.txt").read_text() == t, "témoin"
+pathlib.Path("/srv/media/ecriture-apres-restauration").write_text("ok")  # propriétaire conservé
+PY
+droits_r=$(instance $R exec -T app python manage.py shell <<'PY'
+from django.db import connection
+with connection.cursor() as c:
+    c.execute(
+        "SELECT current_user, has_table_privilege('audit_journalaudit', 'INSERT'),"
+        " has_table_privilege('audit_journalaudit', 'UPDATE'),"
+        " (SELECT count(*) FROM pg_trigger WHERE tgname = 'ajout_seul'"
+        "  AND tgrelid = 'audit_journalaudit'::regclass)"
+    )
+    print("ROLE=%s INSERT=%s UPDATE=%s TRIGGER=%s" % c.fetchone())
+PY
+) || echec "R restaurée : droits"
+grep -qF "ROLE=copronome_${R}_app INSERT=True UPDATE=False TRIGGER=1" <<<"$droits_r" || echec "R restaurée : $droits_r"
 
 echo "essai des conteneurs : OK"
