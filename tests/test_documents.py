@@ -20,7 +20,11 @@ from tests.test_acces import _compte
 pytestmark = pytest.mark.django_db
 
 PDF = b"%PDF-1.7\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n"
-PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 32
+# PNG 1×1 valide, sans métadonnées (le nettoyage le laisse intact).
+PNG = (
+    b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x00\x00\x00\x00:~\x9bU"
+    b"\x00\x00\x00\nIDATx\x9cc`\x00\x00\x00\x02\x00\x01H\xaf\xa4q\x00\x00\x00\x00IEND\xaeB`\x82"
+)
 
 
 def _zip(entrees, premiere=None):

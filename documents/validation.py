@@ -31,6 +31,8 @@ _ODF = {
     "application/vnd.oasis.opendocument.spreadsheet",
 }
 
+_MIMETYPE_MAX = 100  # « application/vnd.oasis.opendocument.spreadsheet » : 46 octets
+
 REFUS = "Type de fichier non accepté (PDF, PNG, JPEG, Word, Excel ou OpenDocument)."
 
 
@@ -41,7 +43,9 @@ def _type_archive(fichier):
             if any(nom.lower().endswith("vbaproject.bin") for nom in noms):
                 raise ValidationError("Document à macros refusé.")
             # ODF : l'entrée `mimetype` vient en premier et porte le type.
-            if noms and noms[0] == "mimetype":
+            # Taille décompressée bornée AVANT de lire : l'entrée est écrite par
+            # l'auteur du fichier (bombe de décompression).
+            if noms and noms[0] == "mimetype" and archive.getinfo("mimetype").file_size <= _MIMETYPE_MAX:
                 type_odf = archive.read("mimetype").decode("ascii", "replace").strip()
                 if type_odf in _ODF:
                     return type_odf

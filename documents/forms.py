@@ -5,6 +5,7 @@ from django.conf import settings
 from django.db import models
 from django.template.defaultfilters import filesizeformat
 
+from documents.metadonnees import sans_metadonnees
 from documents.models import Document, empreinte_sha256, volume_occupe
 from documents.validation import detecter_type
 
@@ -56,7 +57,7 @@ class DocumentForm(forms.ModelForm):
     def clean_fichier(self):
         fichier = self.cleaned_data["fichier"]
         self.type_mime = valider_fichier(fichier)
-        return fichier
+        return sans_metadonnees(fichier, self.type_mime)
 
     def save(self, commit=True):
         document = super().save(commit=False)
@@ -85,7 +86,7 @@ class RemplacementForm(forms.Form):
     def clean_fichier(self):
         fichier = self.cleaned_data["fichier"]
         self.type_mime = valider_fichier(fichier)
-        return fichier
+        return sans_metadonnees(fichier, self.type_mime)
 
 
 class RaisonRetrait(models.TextChoices):
