@@ -243,14 +243,14 @@ def test_droits_par_role(client, lieux, role):
 
 
 def test_perimetre_de_batiment(client, lieux):
-    c_a = Compteur.objects.create(numero="EA", lot=lieux["lot_a"])
-    c_b = Compteur.objects.create(numero="EB", lot=lieux["lot_b"])
+    c_a = Compteur.objects.create(numero="EAU-A-01", lot=lieux["lot_a"])
+    c_b = Compteur.objects.create(numero="EAU-B-01", lot=lieux["lot_b"])
     client.force_login(_compte("cs-b@example.org", Role.MEMBRE_CS, batiment=lieux["b"]))
     assert client.get(reverse("eau:compteur", args=[c_b.pk])).status_code == 200
     assert client.get(reverse("eau:compteur", args=[c_a.pk])).status_code == 403
     assert client.get(reverse("eau:tournee", args=[lieux["a"].pk])).status_code == 403
     assert client.post(reverse("eau:deposer", args=[c_a.pk])).status_code == 403
     page = client.get(reverse("eau:liste")).content
-    assert b"EB" in page and b"EA" not in page
+    assert b"EAU-B-01" in page and b"EAU-A-01" not in page
     reponse = client.get(reverse("eau:exporter"), {"debut": "2024-10-31", "fin": "2025-10-31"})
-    assert b"EA" not in reponse.content
+    assert b"EAU-A-01" not in reponse.content
