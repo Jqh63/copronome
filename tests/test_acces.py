@@ -191,6 +191,11 @@ def test_connexion_garde_formulaire_et_cle_d_acces(client):
     assert 'id="passkey_login"' in page
 
 
+def test_pages_allauth_chargent_la_feuille_de_style(client):
+    """Le gabarit allauth copié chargeait la page sans copronome.css."""
+    assert "copronome.css" in client.get("/compte/login/").content.decode()
+
+
 def test_reinitialisation_pour_adresse_inconnue_n_envoie_rien(client):
     """Le mail « compte inconnu » d'allauth contient un lien d'inscription : coupé."""
     reponse = client.post("/compte/password/reset/", {"email": "inconnu@example.org"})
