@@ -165,9 +165,11 @@ MFA_SUPPORTED_TYPES = ["webauthn", "totp", "recovery_codes"]
 MFA_PASSKEY_LOGIN_ENABLED = True
 MFA_WEBAUTHN_ALLOW_INSECURE_ORIGIN = DEBUG
 
-# Mails : console en debug, relais SMTP authentifié sinon.
+# Mails : console en debug ou sur demande (COPRONOME_EMAIL_CONSOLE=1, instance
+# de préproduction sans relais : les mails, liens compris, vont au journal du
+# conteneur), relais SMTP authentifié sinon.
 DEFAULT_FROM_EMAIL = env("EMAIL_FROM", "copronome@localhost")
-if DEBUG:
+if DEBUG or env("EMAIL_CONSOLE") == "1":
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 else:
     EMAIL_HOST = env("EMAIL_HOST", "")
