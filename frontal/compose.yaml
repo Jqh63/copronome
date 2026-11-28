@@ -1,0 +1,41 @@
+# Frontal d'un serveur Copronome : un Caddy devant toutes les instances
+# (ADR 2026-11-28-domaine-copronome-et-instances § 2). Il route selon le nom
+# d'hôte avec un Caddyfile généré depuis le registre (exploitation/frontal.py),
+# rechargé à chaud ; aucune socket Docker, aucun état gardé en mémoire.
+# Démarrer le frontal AVANT les instances : il crée le réseau partagé
+# `copronome-frontal`, où chaque app est jointe sous l'alias copronome-<id>.
+#   python -m exploitation.frontal <registre.toml> <conf>/Caddyfile
+#   COPRONOME_FRONTAL_CONF=<conf> docker compose -f frontal/compose.yaml up -d
+#   docker compose -f frontal/compose.yaml exec caddy caddy reload --config /etc/caddy/Caddyfile
+name: copronome-frontal
+
+services:
+  caddy:
+    # épinglée par digest
+    image: caddy:2-alpine@sha256:003a97808e781aa9f7e75cc2f43d34d461099031faf5e20faefb9f61126836f0
+    restart: unless-stopped
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    security_opt: ["no-new-privileges:true"]
+    environment:
+      COPRONOME_CORPS_MAX_MO: ${COPRONOME_CORPS_MAX_MO:-21}
+    ports:
+      - "${COPRONOME_FRONTAL_HTTP:-80}:80"
+      - "${COPRONOME_FRONTAL_HTTPS:-443}:443"
+    volumes:
+      # Le dossier, pas le fichier : le générateur remplace le Caddyfile par
+      # renommage (nouvel inode), qu'un montage de fichier ne verrait pas.
+      - ${COPRONOME_FRONTAL_CONF:?COPRONOME_FRONTAL_CONF : dossier du Caddyfile généré}:/etc/caddy:ro
+      - data:/data
+      - config:/config
+    networks: [frontal]
+
+networks:
+  frontal:
+    name: copronome-frontal
+
+volumes:
+  data:
+  config:

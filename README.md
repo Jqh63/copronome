@@ -52,22 +52,23 @@ En production, la configuration se lit dans les variables `COPRONOME_*` (modèle
 
 ## Lancer avec Docker Compose
 
-`compose.yaml` démarre l'app (gunicorn), Postgres, Caddy (TLS, fichiers statiques) et les rappels d'échéances quotidiens, suivis de la purge des anciens copropriétaires et occupants : coordonnées effacées 5 ans après la fin de leur dernier lien avec un lot (délai de prescription, loi de 1965 art. 42 et code civil art. 2224 ; détail dans `copro/purge.py`), jamais pour une personne liée à un compte actif. Seul Caddy est publié ; la base n'a aucune sortie réseau. Un service ponctuel `migrer` applique les migrations sous le rôle Postgres propriétaire, puis crée le rôle restreint de l'app (`manage.py appliquer_droits_base`) : ni superutilisateur ni propriétaire, sans UPDATE ni DELETE sur les journaux (audit, incidents, échéances, relevés d'eau), qu'un trigger protège aussi.
+`compose.yaml` démarre une instance : l'app (gunicorn, fichiers statiques compris), Postgres et les rappels d'échéances quotidiens, suivis de la purge des anciens copropriétaires et occupants : coordonnées effacées 5 ans après la fin de leur dernier lien avec un lot (délai de prescription, loi de 1965 art. 42 et code civil art. 2224 ; détail dans `copro/purge.py`), jamais pour une personne liée à un compte actif. L'instance ne publie aucun port : le frontal (`frontal/compose.yaml`, un Caddy par serveur) joint l'app par le réseau partagé `copronome-frontal` ; la base n'a aucune sortie réseau. Un service ponctuel `migrer` applique les migrations sous le rôle Postgres propriétaire, puis crée le rôle restreint de l'app (`manage.py appliquer_droits_base`) : ni superutilisateur ni propriétaire, sans UPDATE ni DELETE sur les journaux (audit, incidents, échéances, relevés d'eau), qu'un trigger protège aussi.
+
+Les instances se créent depuis le registre (section suivante) ; pour essayer en local, un registre d'une instance sous `copro.localhost` suffit (les navigateurs résolvent `*.localhost` vers la machine) :
 
 ```bash
-# .env à côté de compose.yaml (jamais versionné), au minimum :
-#   COPRONOME_SECRET_KEY=<clé longue et aléatoire>
-#   COPRONOME_DB_PASSWORD=<mot de passe du rôle propriétaire de la base>
-#   COPRONOME_DB_APP_PASSWORD=<mot de passe du rôle de l'app>
-docker compose up -d --build                  # https://localhost:8443 (CA interne de Caddy)
-docker compose run --rm app copropriete --nom "<nom>" --commune "<commune>" --code-insee <code>
-docker compose run --rm app inviter ...       # toute commande manage.py
-docker/essai-conteneurs.sh                    # essai de bout en bout (rejoué en CI)
+python -m exploitation.creer registre.toml instances/          # instances/<id>/instance.env
+mkdir -p frontal/conf && python -m exploitation.frontal registre.toml frontal/conf/Caddyfile --tls-interne
+COPRONOME_FRONTAL_CONF=$PWD/frontal/conf docker compose -f frontal/compose.yaml up -d   # d'abord : crée le réseau
+docker compose -p copronome-<id> --env-file instances/<id>/instance.env up -d --build
+docker compose -p copronome-<id> --env-file instances/<id>/instance.env run --rm app copropriete --nom "<nom>" --commune "<commune>" --code-insee <code>
+docker compose -p copronome-<id> --env-file instances/<id>/instance.env run --rm app inviter ...   # toute commande manage.py
+docker/essai-conteneurs.sh                                    # essai de bout en bout, deux instances (rejoué en CI)
 ```
 
 `copropriete` saisit l'identité de l'instance (nom, commune et code INSEE, adresse, numéro d'immatriculation au registre national), affichée dans les pages, l'objet et l'expéditeur des mails (« <nom> via Copronome ») et le nom du calendrier iCal ; rejouable, elle ne crée jamais un second enregistrement. Tant qu'elle n'est pas saisie, l'instance s'affiche « Copronome ».
 
-Variables propres au déploiement (défaut entre parenthèses) : `COPRONOME_DOMAINE` (`localhost`), `COPRONOME_URL_PUBLIQUE` (`https://localhost:8443`), `COPRONOME_PORT_HTTPS` (`8443`), `COPRONOME_CORPS_MAX_MO` (`21`, limite de corps de Caddy, à garder au-dessus de `COPRONOME_DOCUMENT_TAILLE_MAX_MO`), `COPRONOME_RAPPELS_INTERVALLE` (`86400` secondes), `COPRONOME_GUNICORN_WORKERS` (`2`), `COPRONOME_TRUSTED_PROXY_COUNT` (`1` derrière Caddy : IP du client pour la limite de tentatives de connexion), `COPRONOME_INSTANCE_ID` (`local`), `COPRONOME_DB_NAME` et `COPRONOME_DB_OWNER` (`copronome`). Plusieurs instances sous un même domaine (`<slug>.example.org`) : hôtes autorisés et origines CSRF sont un nom exact (joker refusé au démarrage), les cookies portent le préfixe `__Host-` (ni `Domain`, ni partage entre sous-domaines) et seuls le propriétaire et le rôle de l'app se connectent à la base (`REVOKE CONNECT … FROM PUBLIC`). Le journal d'accès de Caddy masque les jetons des URL (iCal, invitation, réinitialisation, confirmation) ; gunicorn n'en écrit pas.
+Variables propres au déploiement (défaut entre parenthèses) : `COPRONOME_DOMAINE` (`localhost`), `COPRONOME_URL_PUBLIQUE` (`https://localhost:8443`), `COPRONOME_RAPPELS_INTERVALLE` (`86400` secondes), `COPRONOME_GUNICORN_WORKERS` (`2`), `COPRONOME_TRUSTED_PROXY_COUNT` (`1` derrière le frontal : IP du client pour la limite de tentatives de connexion), `COPRONOME_INSTANCE_ID` (`local`), `COPRONOME_DB_NAME` et `COPRONOME_DB_OWNER` (`copronome`). Plusieurs instances sous un même domaine (`<slug>.example.org`) : hôtes autorisés et origines CSRF sont un nom exact (joker refusé au démarrage), les cookies portent le préfixe `__Host-` (ni `Domain`, ni partage entre sous-domaines) et seuls le propriétaire et le rôle de l'app se connectent à la base (`REVOKE CONNECT … FROM PUBLIC`). Le journal d'accès du frontal masque les jetons des URL (iCal, invitation, réinitialisation, confirmation) ; gunicorn n'en écrit pas.
 
 ## Héberger plusieurs copropriétés : le registre des instances
 
@@ -77,9 +78,13 @@ Chaque copropriété est une instance (sa base, ses fichiers, son adresse `https
 python -m exploitation.registre verifier <registre.toml>   # 0 = valide ; sinon toutes les erreurs
 python -m exploitation.registre nouvel-id                  # identifiant d'une nouvelle instance
 python -m exploitation.creer <registre.toml> <racine> [<id> ...]   # crée ou recale <racine>/<id>/instance.env
+python -m exploitation.frontal <registre.toml> <conf>/Caddyfile [--tls-interne]   # configuration du frontal
+docker compose -f frontal/compose.yaml exec caddy caddy reload --config /etc/caddy/Caddyfile
 ```
 
 `creer` est idempotent : pour chaque instance active (ou celles nommées), il écrit `<racine>/<id>/instance.env` (mode 600) avec les variables du contrat dérivées du registre (identifiant, `COPRONOME_DOMAINE` = `<slug>.<domaine>`, URL publique, base et rôles Postgres `copronome_<id>` et `copronome_<id>_app`) et des secrets propres à l'instance (`SECRET_KEY`, mots de passe des deux rôles), générés une seule fois et jamais régénérés. Rejoué après un renommage, il recale l'adresse sans toucher aux secrets ; une variable ajoutée à la main (identifiants mail) est conservée.
+
+`frontal` génère le Caddyfile du frontal : un bloc par instance active (proxy vers l'alias `copronome-<id>`), une redirection 308 par ancien slug, 503 pour une instance suspendue ; une instance supprimée ou un nom inconnu n'obtient rien (pas de certificat en HTTPS, connexion fermée en HTTP). Le nom TLS doit égaler l'en-tête `Host` (`strict_sni_host`). Le fichier n'est réécrit que s'il change, puis `caddy reload` l'applique à chaud ; le frontal n'a ni socket Docker ni état propre. `COPRONOME_CORPS_MAX_MO` (`21`) borne le corps des requêtes au frontal, à garder au-dessus de `COPRONOME_DOCUMENT_TAILLE_MAX_MO` ; `COPRONOME_FRONTAL_HTTP` et `COPRONOME_FRONTAL_HTTPS` (`80`, `443`) choisissent les ports publiés. Limite assumée : sur le réseau du frontal, une instance joint l'app des autres directement, sans passer par le frontal.
 
 ## Contribuer : aucun secret, aucune donnée réelle
 
