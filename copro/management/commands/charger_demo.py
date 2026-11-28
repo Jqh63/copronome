@@ -7,8 +7,8 @@ chiffre repris d'une copropriété réelle : noms en « Exemple »/« Démo »,
 mails en example.org, téléphones en 00 00 00 00 (motifs autorisés par
 .gitleaks.toml).
 
-`--activite` ajoute échéances, incidents et rendez-vous datés autour du
-jour du chargement. Refuse si la base contient déjà des lots : ne mélange
+`--activite` ajoute échéances, incidents, rendez-vous et relevés d'eau
+datés autour du jour du chargement. Refuse si la base contient déjà des lots : ne mélange
 jamais démo et données réelles.
 """
 
@@ -29,6 +29,7 @@ from copro.models import (
     Personne,
     Tantieme,
 )
+from eau.models import Compteur, Releve
 from echeances.models import Echeance, realiser
 from incidents.models import Evenement, Incident, Statut, journaliser
 
@@ -91,7 +92,7 @@ class Command(BaseCommand):
             self._activite()
             message += (
                 f", {Echeance.objects.count()} échéances, {Incident.objects.count()} incidents,"
-                f" {RendezVous.objects.count()} rendez-vous"
+                f" {RendezVous.objects.count()} rendez-vous, {Compteur.objects.count()} compteurs d'eau"
             )
         self.stdout.write(self.style.SUCCESS(message + "."))
 
@@ -298,6 +299,8 @@ class Command(BaseCommand):
                 else:
                     journaliser(incident, type, None)
 
+        self._eau(jours)
+
         maintenant = timezone.localtime().replace(minute=0, second=0, microsecond=0)
         for titre, dans, heure, lieu, batiment in (
             ("Réunion du conseil syndical", 10, 19, "Salle commune", None),
@@ -312,3 +315,40 @@ class Command(BaseCommand):
                 lieu=lieu,
                 batiment=batiment,
             )
+
+    def _eau(self, jours):
+        """Compteurs du bâtiment A et de l'arrosage, deux tournées du CS à un
+        an d'écart, un relevé du syndic à comparer et un index en baisse
+        (erreur de lecture) pour montrer le signalement."""
+        compteurs = [
+            Compteur.objects.create(numero=f"DEMO-A{n:02d}", lot=lot, emplacement="Gaine palière")
+            for n, lot in enumerate(
+                Lot.objects.filter(batiment__nom="Bâtiment A", type=Lot.Type.LOGEMENT).order_by("numero"),
+                start=1,
+            )
+        ]
+        compteurs.append(
+            Compteur.objects.create(
+                numero="DEMO-ARROSAGE",
+                partie_commune=PartieCommune.objects.get(nom="Espaces verts"),
+                emplacement="Regard près du portail",
+            )
+        )
+        for n, compteur in enumerate(compteurs):
+            depart = 100 + 37 * n
+            Releve.objects.create(compteur=compteur, releve_le=jours(-365), index=depart)
+            Releve.objects.create(compteur=compteur, releve_le=jours(-10), index=depart + 30 + 4 * n)
+        premier = compteurs[0]
+        Releve.objects.create(
+            compteur=premier,
+            releve_le=jours(-8),
+            index=Releve.objects.filter(compteur=premier).last().index + 1,
+            source=Releve.Source.SYNDIC,
+            note="Relevé du prestataire (démo).",
+        )
+        Releve.objects.create(
+            compteur=compteurs[1],
+            releve_le=jours(-2),
+            index=120,
+            note="Chiffres inversés à la lecture (démo).",
+        )
