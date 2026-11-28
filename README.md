@@ -79,6 +79,8 @@ git config core.hooksPath .githooks   # active le contrôle avant commit
 
 Le hook refuse un commit qui contient un secret, un IBAN, un numéro de téléphone ou une adresse mail hors domaines fictifs (`.gitleaks.toml`, avec [gitleaks](https://github.com/gitleaks/gitleaks) installé). Il vérifie aussi les termes privés de votre copropriété (nom, adresse, noms des personnes), listés un par ligne **hors du dépôt**, dans `~/.config/copronome/termes-prives.txt`. La CI rejoue le même scan sur chaque PR.
 
+Toute contribution extérieure suppose l'acceptation de l'[accord de contribution](CLA.md) : vous restez auteur, et le mainteneur peut aussi licencier votre contribution sous d'autres conditions que l'AGPL. Les licences des dépendances sont inventoriées dans [`LICENCES-DEPENDANCES.md`](LICENCES-DEPENDANCES.md), à tenir à jour avec `requirements.txt`.
+
 ## Licence
 
 [AGPL-3.0](LICENSE) : si vous proposez une version modifiée de Copronome en service à d'autres personnes, vous devez en publier le code source.
