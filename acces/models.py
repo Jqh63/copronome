@@ -21,12 +21,20 @@ class Role(models.TextChoices):
     PRESIDENT = "president", "Président du conseil syndical"
     MEMBRE_CS = "membre_cs", "Membre du conseil syndical"
     CONTROLEUR = "controleur", "Contrôleur des comptes"
+    SYNDIC_NON_PRO = "syndic_non_pro", "Syndic non professionnel"
     SYNDIC = "syndic", "Syndic professionnel"
     COPROPRIETAIRE = "coproprietaire", "Copropriétaire"
 
 
 # Rôles qui écrivent ou voient tout : second facteur obligatoire (ADR, § 5).
-ROLES_MFA_OBLIGATOIRE = {Role.ADMIN, Role.PRESIDENT, Role.MEMBRE_CS, Role.CONTROLEUR, Role.SYNDIC}
+ROLES_MFA_OBLIGATOIRE = {
+    Role.ADMIN,
+    Role.PRESIDENT,
+    Role.MEMBRE_CS,
+    Role.CONTROLEUR,
+    Role.SYNDIC_NON_PRO,
+    Role.SYNDIC,
+}
 
 
 class Affectation(models.Model):

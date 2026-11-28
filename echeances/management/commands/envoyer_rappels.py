@@ -8,7 +8,6 @@ Destinataires : les comptes actifs qui peuvent ÉCRIRE les échéances (ceux
 qui peuvent agir), jamais l'admin technique seul.
 """
 
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
 from django.core.management.base import BaseCommand
@@ -17,6 +16,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from acces.droits import ECRIRE, peut
+from copro.identite import expediteur, nom_affiche
 from echeances.models import Echeance
 from echeances.views import visibles
 
@@ -38,6 +38,7 @@ class Command(BaseCommand):
         if not dues:
             return
         ids_dues = {e.pk for e in dues}
+        nom, de = nom_affiche(), expediteur()
         envoyes, rappelees = 0, set()
         for utilisateur in get_user_model().objects.filter(is_active=True).prefetch_related("affectations"):
             if not peut(utilisateur, ECRIRE, "echeances"):
@@ -51,9 +52,9 @@ class Command(BaseCommand):
                 lien = f"\n    {url.rstrip('/')}{reverse('echeances:detail', args=[e.pk])}" if url else ""
                 lignes.append(f"- {e.prochaine_le:%d/%m/%Y} ({etat}) : {e.titre}{lien}")
             send_mail(
-                f"Copronome : {len(siennes)} échéance(s) à traiter",
+                f"{nom} : {len(siennes)} échéance(s) à traiter",
                 "Échéances arrivées dans leur fenêtre de rappel :\n\n" + "\n".join(lignes) + "\n",
-                settings.DEFAULT_FROM_EMAIL,
+                de,
                 [utilisateur.email],
             )
             envoyes += 1

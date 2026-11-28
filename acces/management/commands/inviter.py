@@ -3,12 +3,12 @@
 manage.py inviter <email> <role> [--batiment "Bâtiment A"] [--url https://copro.example.org]
 """
 
-from django.conf import settings
 from django.core.mail import send_mail
 from django.core.management.base import BaseCommand, CommandError
 from django.urls import reverse
 
 from acces.models import Invitation, Role
+from copro.identite import expediteur, nom_affiche
 from copro.models import Batiment
 
 
@@ -30,10 +30,11 @@ class Command(BaseCommand):
         invitation, jeton = Invitation.creer(email, role, batiment=bat)
         lien = url.rstrip("/") + reverse("accepter_invitation", args=[jeton])
         send_mail(
-            "Invitation à Copronome",
-            f"Vous êtes invité·e sur Copronome ({invitation.get_role_display()}).\n\n"
+            f"Invitation : {nom_affiche()}",
+            f"Vous êtes invité·e sur l'espace de {nom_affiche()}, géré avec Copronome "
+            f"({invitation.get_role_display()}).\n\n"
             f"Créez votre compte avec ce lien, valable 7 jours et utilisable une seule fois :\n{lien}\n",
-            settings.DEFAULT_FROM_EMAIL,
+            expediteur(),
             [invitation.email],
         )
         self.stdout.write(

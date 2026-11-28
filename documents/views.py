@@ -3,7 +3,16 @@ from django.http import FileResponse, HttpResponseGone
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
-from acces.droits import ECRIRE, LIRE, batiments_visibles, exige, filtre_documents, peut, verifier
+from acces.droits import (
+    ECRIRE,
+    LIRE,
+    batiments_visibles,
+    exige,
+    filtre_documents,
+    peut,
+    verifier,
+    visibilites_lisibles,
+)
 from audit.models import Action, journaliser
 from documents.conservation import echeance, erreur_encore_possible, retrait_bloque
 from documents.forms import DocumentForm, RaisonRetrait, RemplacementForm, RetraitForm, renseigner_fichier
@@ -39,6 +48,7 @@ def deposer(request):
         request.POST or None,
         request.FILES or None,
         batiments_visibles=batiments_visibles(request.user, ECRIRE, "documents"),
+        visibilites=visibilites_lisibles(request.user),
     )
     if request.method == "POST" and form.is_valid():
         document = form.save(commit=False)

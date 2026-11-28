@@ -46,6 +46,12 @@ DROITS = {
     # Admin technique : lit tout, n'écrit que les comptes (pas de donnée métier).
     Role.ADMIN: {d: {LIRE} for d in DOMAINES} | {"comptes": {LIRE, ECRIRE}},
     Role.PRESIDENT: {d: {LIRE, ECRIRE} for d in DOMAINES - {"audit"}} | {"audit": {LIRE}},
+    # Syndic non professionnel (ADR domaine et instances, § 7) : copropriétaire
+    # désigné par l'AG, pouvoirs de gestion du syndic, pas forcément membre du
+    # CS. Mêmes droits de domaine que le président, sans les documents réservés
+    # au CS (le CS contrôle le syndic). En coopératif, le président du CS est
+    # syndic : il cumule les deux affectations.
+    Role.SYNDIC_NON_PRO: {d: {LIRE, ECRIRE} for d in DOMAINES - {"audit"}} | {"audit": {LIRE}},
     Role.MEMBRE_CS: {d: {LIRE} for d in METIER}
     | {d: {LIRE, ECRIRE} for d in ("incidents", "documents", "agenda", "echeances", "eau", "ag")},
     # Contrôleur des comptes : lit les relevés qui fondent la clé eau.
@@ -60,7 +66,7 @@ DROITS = {
 # sans « lire documents » ne lit rien, même un document « tous ».
 VISIBILITE_DOCUMENTS = {
     "cs": {Role.ADMIN, Role.PRESIDENT, Role.MEMBRE_CS},
-    "comptes": {Role.ADMIN, Role.PRESIDENT, Role.MEMBRE_CS, Role.CONTROLEUR},
+    "comptes": {Role.ADMIN, Role.PRESIDENT, Role.MEMBRE_CS, Role.CONTROLEUR, Role.SYNDIC_NON_PRO},
     "tous": set(Role),
 }
 
@@ -128,6 +134,13 @@ def public(vue):
     acceptation d'invitation) : le banc l'accepte, et la liste se relit en diff."""
     vue.controle_acces = "public"
     return vue
+
+
+def visibilites_lisibles(utilisateur):
+    """Niveaux de visibilité de documents que le compte lit : un dépôt ne
+    propose que ceux-là (un document déposé doit rester lisible par son auteur)."""
+    roles = {a.role for a in utilisateur.affectations.all()}
+    return [niveau for niveau, lecteurs in VISIBILITE_DOCUMENTS.items() if roles & lecteurs]
 
 
 def batiments_visibles(utilisateur, action, domaine):

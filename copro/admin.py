@@ -9,6 +9,7 @@ from django.contrib import admin
 from copro.models import (
     Batiment,
     CleRepartition,
+    Copropriete,
     Detention,
     Lot,
     Occupation,
@@ -16,6 +17,19 @@ from copro.models import (
     Personne,
     Tantieme,
 )
+
+
+@admin.register(Copropriete)
+class CoproprieteAdmin(admin.ModelAdmin):
+    """Un seul enregistrement : ni second ajout, ni suppression."""
+
+    list_display = ["nom", "commune", "code_insee", "immatriculation"]
+
+    def has_add_permission(self, request):
+        return not Copropriete.objects.exists() and super().has_add_permission(request)
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 class TantiemeInline(admin.TabularInline):

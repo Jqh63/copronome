@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block titre %}Tournée {{ batiment.nom }} — Copronome{% endblock %}
+{% block titre %}Tournée {{ batiment.nom }} — {{ nom_instance }}{% endblock %}
 {% block contenu %}
 <h1>Tournée de relevés — {{ batiment.nom }}</h1>
 <p>Une date et une source pour tous les compteurs ; un index laissé vide n'enregistre rien.</p>

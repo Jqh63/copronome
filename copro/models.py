@@ -1,15 +1,55 @@
 """Structure de la copropriété, répartition et personnes (ADR de conception, § 3).
 
-Une instance = une copropriété : aucun modèle « Copropriété » ni filtre par
-copropriété. Les escaliers, ascenseurs et parkings sont des parties
-communes, pas des entités figées. Les tantièmes sont lus (votes,
-affectations), jamais utilisés pour calculer des charges.
+Une instance = une copropriété : un seul enregistrement `Copropriete` porte
+son identité (nom affiché, commune), aucun filtre par copropriété. Les
+escaliers, ascenseurs et parkings sont des parties communes, pas des
+entités figées. Les tantièmes sont lus (votes, affectations), jamais
+utilisés pour calculer des charges.
 """
 
 from django.core.exceptions import ValidationError
+from django.core.validators import RegexValidator
 from django.db import models
 from django.db.models import Q, Sum
 from django.utils import timezone
+
+
+class Copropriete(models.Model):
+    """Identité de l'instance, en un seul exemplaire (ADR domaine et instances,
+    § 4). Le nom peut ne pas être unique : la commune et son code INSEE le
+    distinguent. Affichée dans les pages, les mails et l'iCal."""
+
+    UNIQUE = 1
+
+    id = models.PositiveSmallIntegerField(primary_key=True, default=UNIQUE, editable=False)
+    nom = models.CharField(max_length=150, help_text="Nom de la résidence, tel qu'au règlement")
+    commune = models.CharField(max_length=100)
+    code_insee = models.CharField(
+        "code INSEE",
+        max_length=5,
+        validators=[RegexValidator(r"^(\d{5}|2[AB]\d{3})$", "Code INSEE : 5 caractères (2A/2B en Corse).")],
+        help_text="Code officiel de la commune (pas le code postal)",
+    )
+    adresse = models.TextField(blank=True)
+    # Format non vérifié sur texte (ADR, § 4) : champ peu contraint.
+    immatriculation = models.CharField(
+        "n° d'immatriculation",
+        max_length=30,
+        blank=True,
+        help_text="Registre national des copropriétés ; vide pour une structure hors registre (ASL)",
+    )
+
+    class Meta:
+        verbose_name = "copropriété"
+        constraints = [models.CheckConstraint(condition=Q(id=1), name="copropriete_unique")]
+
+    def __str__(self):
+        return f"{self.nom} ({self.commune})"
+
+    @classmethod
+    def courante(cls):
+        """L'enregistrement de l'instance, ou None s'il n'est pas encore saisi."""
+        return cls.objects.filter(pk=cls.UNIQUE).first()
 
 
 class Batiment(models.Model):

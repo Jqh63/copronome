@@ -77,6 +77,7 @@ ATTENDU_LOTS = {
     Role.ADMIN: 200,
     Role.PRESIDENT: 200,
     Role.MEMBRE_CS: 200,
+    Role.SYNDIC_NON_PRO: 200,
     Role.CONTROLEUR: 403,
     Role.SYNDIC: 403,
     Role.COPROPRIETAIRE: 403,

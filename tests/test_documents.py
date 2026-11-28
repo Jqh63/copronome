@@ -167,6 +167,7 @@ ATTENDU_LECTURE = {
     Role.MEMBRE_CS: {"cs": 200, "comptes": 200, "tous": 200},
     Role.CONTROLEUR: {"cs": 403, "comptes": 200, "tous": 200},
     # Pas encore de droit « lire documents » : rien, même un document « tous ».
+    Role.SYNDIC_NON_PRO: {"cs": 403, "comptes": 200, "tous": 200},
     Role.SYNDIC: {"cs": 403, "comptes": 403, "tous": 403},
     Role.COPROPRIETAIRE: {"cs": 403, "comptes": 403, "tous": 403},
 }
@@ -209,3 +210,15 @@ def test_depot_refuse_sans_droit_d_ecriture(client, demo, role):
     client.force_login(_compte(f"{role}@example.org", role))
     assert _deposer(client, PDF).status_code == 403
     assert Document.objects.count() == 0
+
+
+def test_depot_ne_propose_que_les_niveaux_lisibles(client, demo):
+    """Le syndic non professionnel ne lit pas les documents réservés au CS : il
+    ne peut pas en déposer un (il ne le reverrait plus)."""
+    client.force_login(_compte("syndic-np@example.org", Role.SYNDIC_NON_PRO))
+    choix = {
+        v for v, _ in client.get(reverse("documents:deposer")).context["form"].fields["visibilite"].choices
+    }
+    assert choix == {Visibilite.COMPTES, Visibilite.TOUS}
+    assert _deposer(client, PDF, visibilite=Visibilite.CS).status_code == 400
+    assert _deposer(client, PDF, visibilite=Visibilite.COMPTES).status_code == 302

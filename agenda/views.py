@@ -1,6 +1,7 @@
 import datetime
 
 from allauth.mfa.utils import is_mfa_enabled
+from django.conf import settings
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -11,6 +12,7 @@ from acces.middleware import mfa_obligatoire
 from agenda import ical
 from agenda.forms import EvenementForm
 from agenda.models import Evenement, JetonAgenda
+from copro.identite import nom_affiche
 from echeances.views import visibles as echeances_visibles
 
 
@@ -106,7 +108,7 @@ def flux_ical(request, jeton):
         for e in _visibles(utilisateur).filter(debut__gte=depuis):
             entrees.append(
                 {
-                    "uid": f"agenda-{e.pk}@copronome",
+                    "uid": f"agenda-{e.pk}@{settings.INSTANCE_ID}.copronome",
                     "titre": e.titre,
                     "debut": e.debut,
                     "fin": e.fin,
@@ -119,12 +121,14 @@ def flux_ical(request, jeton):
         for e in echeances_visibles(utilisateur).filter(active=True):
             entrees.append(
                 {
-                    "uid": f"echeance-{e.pk}@copronome",
+                    "uid": f"echeance-{e.pk}@{settings.INSTANCE_ID}.copronome",
                     "titre": f"Échéance : {e.titre}",
                     "debut": e.prochaine_le,
                 }
             )
-    reponse = HttpResponse(ical.calendrier("Copronome", entrees), content_type="text/calendar; charset=utf-8")
+    reponse = HttpResponse(
+        ical.calendrier(nom_affiche(), entrees), content_type="text/calendar; charset=utf-8"
+    )
     reponse["Cache-Control"] = "private, no-store"
     reponse["Referrer-Policy"] = "no-referrer"
     return reponse

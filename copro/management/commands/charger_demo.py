@@ -22,6 +22,7 @@ from agenda.models import Evenement as RendezVous
 from copro.models import (
     Batiment,
     CleRepartition,
+    Copropriete,
     Detention,
     Lot,
     Occupation,
@@ -85,6 +86,17 @@ class Command(BaseCommand):
         if Lot.objects.exists():
             raise CommandError("La base contient déjà des lots : démonstration refusée.")
 
+        # Identité fictive : 99xxx n'est le code INSEE d'aucune commune.
+        Copropriete.objects.update_or_create(
+            pk=Copropriete.UNIQUE,
+            defaults={
+                "nom": "Résidence des Exemples",
+                "commune": "Exempleville",
+                "code_insee": "99999",
+                "adresse": "1 rue de l'Exemple",
+                "immatriculation": "DEMO-0000",
+            },
+        )
         lots = self._structure()
         self._personnes(lots)
         message = f"Démonstration chargée : {len(lots)} lots, {Personne.objects.count()} personnes"
