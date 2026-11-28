@@ -70,6 +70,8 @@ grep -q "$A (tilleuls-essai) : inchangée" <<<"$rejeu" || echec "rejeu de la cr�
 python3 -m exploitation.frontal "$racine/registre.toml" "$racine/conf/Caddyfile" --tls-interne >/dev/null
 
 frontal config --quiet
+validation=$(frontal run --rm --no-deps -T caddy caddy validate --config /etc/caddy/Caddyfile 2>&1) ||
+    echec "Caddyfile généré invalide : $(tail -5 <<<"$validation")"
 frontal up -d --wait --wait-timeout 60 || echec "démarrage du frontal"
 for id in $A $B; do
     instance "$id" config --quiet
@@ -81,8 +83,8 @@ instance $B exec -T app python manage.py copropriete --nom "Essai B" --commune E
     >/dev/null || echec "identité de B"
 
 # Routage : chaque nom atteint sa copropriété, et pas l'autre.
-page_a=$(requete "$HOTE_A" /invitation/inexistante/)
-page_b=$(requete "$HOTE_B" /invitation/inexistante/)
+page_a=$(requete "$HOTE_A" /invitation/inexistante/) || echec "A injoignable par le frontal (curl $?)"
+page_b=$(requete "$HOTE_B" /invitation/inexistante/) || echec "B injoignable par le frontal (curl $?)"
 grep -q 'Essai B' <<<"$page_b" || echec "B : titre « Essai B » absent : $(grep -m1 '<title' <<<"$page_b")"
 if grep -q 'Essai B' <<<"$page_a"; then echec "le nom de A sert la page de B"; fi
 
