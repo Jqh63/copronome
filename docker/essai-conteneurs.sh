@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 # Essai de bout en bout (CI, ou à la main avec Docker) : un registre de deux
-# instances, créées par exploitation/creer.py, derrière le frontal généré par
-# exploitation/frontal.py. Vérifie le routage par nom d'hôte (chaque nom
+# instances, créées par exploitation/creer.py, dont les bases sont
+# provisionnées dans le cluster Postgres partagé (exploitation/postgres.py),
+# derrière le frontal généré par exploitation/frontal.py. Vérifie l'isolement
+# des bases (rôles de A refusés sur la base de B, superutilisateur refusé par
+# le réseau, provisionnement rejouable), le routage par nom d'hôte (chaque nom
 # atteint sa copropriété), l'ancien slug redirigé, le nom inconnu refusé,
 # l'absence de port publié par les instances, puis à travers le frontal la
 # sonde, les en-têtes de sécurité, les statiques servis par l'app, la limite
@@ -23,8 +26,12 @@ ANCIEN_A="ancien-tilleuls-essai.$DOMAINE"
 racine=$(mktemp -d)
 mkdir "$racine/conf"
 export COPRONOME_FRONTAL_CONF="$racine/conf" COPRONOME_FRONTAL_HTTPS=$HTTPS COPRONOME_FRONTAL_HTTP=$HTTP
-export COPRONOME_CORPS_MAX_MO=3
+export COPRONOME_CORPS_MAX_MO=3 COPRONOME_POSTGRES_CONF="$racine/_cluster/conf"
 frontal() { docker compose -f frontal/compose.yaml -p copronome-essai-frontal "$@"; }
+pg() { docker compose -f postgres/compose.yaml -p copronome-essai-postgres --env-file "$racine/_cluster/postgres.env" "$@"; }
+provisionner() {
+    python3 -m exploitation.postgres sql "$racine/$1/instance.env" | pg exec -T -u postgres postgres psql -q -d postgres
+}
 instance() { local id=$1; shift; docker compose -p "copronome-essai-$id" --env-file "$racine/$id/instance.env" "$@"; }
 # curl vers le frontal local, sous le nom d'hôte demandé (SNI et Host).
 requete() { local hote=$1 chemin=$2; shift 2; curl -sk --resolve "$hote:$HTTPS:127.0.0.1" "$@" "https://$hote:$HTTPS$chemin"; }
@@ -32,12 +39,14 @@ requete() { local hote=$1 chemin=$2; shift 2; curl -sk --resolve "$hote:$HTTPS:1
 echec() {
     echo "ECHEC : $*" >&2
     frontal logs --no-color --tail 40 >&2 || true
+    pg logs --no-color --tail 40 >&2 || true
     for id in $A $B; do instance "$id" logs --no-color --tail 40 >&2 || true; done
     exit 1
 }
 menage() {
     for id in $A $B; do instance "$id" down -v --remove-orphans >/dev/null 2>&1 || true; done
     frontal down -v --remove-orphans >/dev/null 2>&1 || true
+    pg down -v --remove-orphans >/dev/null 2>&1 || true
     rm -rf "$racine"
 }
 trap menage EXIT
@@ -68,11 +77,18 @@ echo "COPRONOME_DOCUMENT_TAILLE_MAX_MO=2" >>"$racine/$A/instance.env"
 rejeu=$(python3 -m exploitation.creer "$racine/registre.toml" "$racine")
 grep -q "$A (tilleuls-essai) : inchangée" <<<"$rejeu" || echec "rejeu de la création : $rejeu"
 python3 -m exploitation.frontal "$racine/registre.toml" "$racine/conf/Caddyfile" --tls-interne >/dev/null
+python3 -m exploitation.postgres configurer "$racine/registre.toml" "$racine" >/dev/null || echec "configuration du cluster"
 
 frontal config --quiet
 validation=$(frontal run --rm --no-deps -T caddy caddy validate --config /etc/caddy/Caddyfile 2>&1) ||
     echec "Caddyfile généré invalide : $(tail -5 <<<"$validation")"
 frontal up -d --wait --wait-timeout 60 || echec "démarrage du frontal"
+pg config --quiet
+pg up -d --wait --wait-timeout 60 || echec "démarrage du cluster Postgres"
+for id in $A $B; do
+    provisionner "$id" || echec "provisionnement de $id"
+    provisionner "$id" || echec "provisionnement de $id rejoué"
+done
 for id in $A $B; do
     instance "$id" config --quiet
     conf=$(instance "$id" config)
@@ -157,6 +173,30 @@ PY
 ) || echec "rôle de l'app : shell en échec"
 attendu="BASE=copronome_$A ROLE=copronome_${A}_app SUPER=False UPDATE=False DELETE=False TRUNCATE=False INSERT=True"
 grep -qF "$attendu" <<<"$role" || echec "rôle de l'app : $role"
+
+# Isolement des bases dans le cluster : depuis l'app de A, sa base répond
+# (contrôle positif), la base de B refuse les rôles de A, et le
+# superutilisateur est refusé par le réseau même avec son mot de passe.
+super=$(sed -n 's/^COPRONOME_POSTGRES_PASSWORD=//p' "$racine/_cluster/postgres.env")
+isolement=$(instance $A exec -T -e ESSAI_BASE_B="copronome_$B" -e ESSAI_SUPER="$super" app python - <<'PY'
+import os, psycopg
+hote, role, mdp = "copronome-postgres", os.environ["COPRONOME_DB_USER"], os.environ["COPRONOME_DB_PASSWORD"]
+def essai(base, utilisateur, mot_de_passe):
+    try:
+        psycopg.connect(host=hote, dbname=base, user=utilisateur, password=mot_de_passe, connect_timeout=5).close()
+        return "ok"
+    except psycopg.OperationalError as e:
+        return "refus-hba" if "pg_hba.conf" in str(e) else "autre:" + str(e).splitlines()[0]
+print("PROPRE=%s AUTRE=%s SUPER=%s" % (
+    essai(os.environ["COPRONOME_DB_NAME"], role, mdp),
+    essai(os.environ["ESSAI_BASE_B"], role, mdp),
+    essai("postgres", "postgres", os.environ["ESSAI_SUPER"]),
+))
+PY
+) || echec "isolement des bases : shell en échec"
+grep -qF "PROPRE=ok AUTRE=refus-hba SUPER=refus-hba" <<<"$isolement" || echec "isolement des bases : $isolement"
+regen=$(python3 -m exploitation.postgres configurer "$racine/registre.toml" "$racine")
+grep -q inchangé <<<"$regen" || echec "reconfiguration du cluster : $regen"
 
 # Cookies d'une instance sous un domaine partagé : préfixe __Host-, Secure,
 # Path=/, sans Domain (ADR domaine et instances, § 3).

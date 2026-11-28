@@ -52,7 +52,7 @@ En production, la configuration se lit dans les variables `COPRONOME_*` (modèle
 
 ## Lancer avec Docker Compose
 
-`compose.yaml` démarre une instance : l'app (gunicorn, fichiers statiques compris), Postgres et les rappels d'échéances quotidiens, suivis de la purge des anciens copropriétaires et occupants : coordonnées effacées 5 ans après la fin de leur dernier lien avec un lot (délai de prescription, loi de 1965 art. 42 et code civil art. 2224 ; détail dans `copro/purge.py`), jamais pour une personne liée à un compte actif. L'instance ne publie aucun port : le frontal (`frontal/compose.yaml`, un Caddy par serveur) joint l'app par le réseau partagé `copronome-frontal` ; la base n'a aucune sortie réseau. Un service ponctuel `migrer` applique les migrations sous le rôle Postgres propriétaire, puis crée le rôle restreint de l'app (`manage.py appliquer_droits_base`) : ni superutilisateur ni propriétaire, sans UPDATE ni DELETE sur les journaux (audit, incidents, échéances, relevés d'eau), qu'un trigger protège aussi.
+`compose.yaml` démarre une instance : l'app (gunicorn, fichiers statiques compris) et les rappels d'échéances quotidiens, suivis de la purge des anciens copropriétaires et occupants : coordonnées effacées 5 ans après la fin de leur dernier lien avec un lot (délai de prescription, loi de 1965 art. 42 et code civil art. 2224 ; détail dans `copro/purge.py`), jamais pour une personne liée à un compte actif. L'instance ne publie aucun port : le frontal (`frontal/compose.yaml`, un Caddy par serveur) joint l'app par le réseau partagé `copronome-frontal`. Sa base vit dans le cluster Postgres du serveur (`postgres/compose.yaml`, un par serveur), joint par le réseau interne `copronome-base`, sans sortie. Un service ponctuel `migrer` applique les migrations sous le rôle Postgres propriétaire de la base, puis donne au rôle restreint de l'app ses droits (`manage.py appliquer_droits_base`) : ni superutilisateur ni propriétaire, sans UPDATE ni DELETE sur les journaux (audit, incidents, échéances, relevés d'eau), qu'un trigger protège aussi.
 
 Les instances se créent depuis le registre (section suivante) ; pour essayer en local, un registre d'une instance sous `copro.localhost` suffit (les navigateurs résolvent `*.localhost` vers la machine) :
 
@@ -60,6 +60,11 @@ Les instances se créent depuis le registre (section suivante) ; pour essayer en
 python -m exploitation.creer registre.toml instances/          # instances/<id>/instance.env
 mkdir -p frontal/conf && python -m exploitation.frontal registre.toml frontal/conf/Caddyfile --tls-interne
 COPRONOME_FRONTAL_CONF=$PWD/frontal/conf docker compose -f frontal/compose.yaml up -d   # d'abord : crée le réseau
+python -m exploitation.postgres configurer registre.toml instances/   # instances/_cluster/{conf/pg_hba.conf,postgres.env}
+COPRONOME_POSTGRES_CONF=$PWD/instances/_cluster/conf docker compose -f postgres/compose.yaml \
+  --env-file instances/_cluster/postgres.env up -d --wait          # d'abord aussi : crée le réseau de la base
+python -m exploitation.postgres sql instances/<id>/instance.env |
+  docker compose -f postgres/compose.yaml exec -T -u postgres postgres psql -q -d postgres   # rôles et base, rejouable
 docker compose -p copronome-<id> --env-file instances/<id>/instance.env up -d --build
 docker compose -p copronome-<id> --env-file instances/<id>/instance.env run --rm app copropriete --nom "<nom>" --commune "<commune>" --code-insee <code>
 docker compose -p copronome-<id> --env-file instances/<id>/instance.env run --rm app inviter ...   # toute commande manage.py
@@ -80,9 +85,13 @@ python -m exploitation.registre nouvel-id                  # identifiant d'une n
 python -m exploitation.creer <registre.toml> <racine> [<id> ...]   # crée ou recale <racine>/<id>/instance.env
 python -m exploitation.frontal <registre.toml> <conf>/Caddyfile [--tls-interne]   # configuration du frontal
 docker compose -f frontal/compose.yaml exec caddy caddy reload --config /etc/caddy/Caddyfile
+python -m exploitation.postgres configurer <registre.toml> <racine>   # pg_hba du cluster et secret du superutilisateur
+python -m exploitation.postgres sql <racine>/<id>/instance.env       # SQL des rôles et de la base, pour psql
 ```
 
 `creer` est idempotent : pour chaque instance active (ou celles nommées), il écrit `<racine>/<id>/instance.env` (mode 600) avec les variables du contrat dérivées du registre (identifiant, `COPRONOME_DOMAINE` = `<slug>.<domaine>`, URL publique, base et rôles Postgres `copronome_<id>` et `copronome_<id>_app`) et des secrets propres à l'instance (`SECRET_KEY`, mots de passe des deux rôles), générés une seule fois et jamais régénérés. Rejoué après un renommage, il recale l'adresse sans toucher aux secrets ; une variable ajoutée à la main (identifiants mail) est conservée.
+
+`postgres configurer` écrit la configuration du cluster sous `<racine>/_cluster/` : `conf/pg_hba.conf`, généré depuis le registre (chaque base n'accepte que ses deux rôles, `scram-sha-256` ; le superutilisateur n'entre que par la socket locale du conteneur ; tout le reste est refusé), et `postgres.env` (mode 600), mot de passe du superutilisateur généré une fois, que l'image exige à l'initialisation et que le `pg_hba` rend inutilisable par le réseau. Après un changement du registre (instance créée ou supprimée) : rejouer `configurer`, puis `docker compose -f postgres/compose.yaml exec -u postgres postgres psql -c 'SELECT pg_reload_conf()'`. `postgres sql` écrit le SQL idempotent qui crée ou recale les deux rôles de l'instance (sans attribut d'administration, mots de passe de `instance.env`) et sa base (propriétaire, `REVOKE ALL … FROM PUBLIC`, `CONNECT` pour le rôle de l'app) ; il passe à `psql` par l'entrée standard, jamais en argument. Limites assumées (ADR) : un cluster par serveur partage les mises à jour majeures et le plafond de connexions (`max_connections`, 100 par défaut, environ `COPRONOME_GUNICORN_WORKERS` + 2 par instance) ; sur le réseau de la base, comme sur celui du frontal, une instance joint l'app des autres en direct.
 
 `frontal` génère le Caddyfile du frontal : un bloc par instance active (proxy vers l'alias `copronome-<id>`), une redirection 308 par ancien slug, 503 pour une instance suspendue ; une instance supprimée ou un nom inconnu n'obtient rien (pas de certificat en HTTPS, connexion fermée en HTTP). Le nom TLS doit égaler l'en-tête `Host` (`strict_sni_host`). Le fichier n'est réécrit que s'il change, puis `caddy reload` l'applique à chaud ; le frontal n'a ni socket Docker ni état propre. `COPRONOME_CORPS_MAX_MO` (`21`) borne le corps des requêtes au frontal, à garder au-dessus de `COPRONOME_DOCUMENT_TAILLE_MAX_MO` ; `COPRONOME_FRONTAL_HTTP` et `COPRONOME_FRONTAL_HTTPS` (`80`, `443`) choisissent les ports publiés. Limite assumée : sur le réseau du frontal, une instance joint l'app des autres directement, sans passer par le frontal.
 
