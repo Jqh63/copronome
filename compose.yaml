@@ -68,7 +68,6 @@ services:
     command: web
     volumes:
       - media:/srv/media
-      - static:/srv/static
     depends_on:
       migrer:
         condition: service_completed_successfully
@@ -118,7 +117,6 @@ services:
       - "${COPRONOME_PORT_HTTPS:-8443}:443"
     volumes:
       - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
-      - static:/srv/static:ro
       - caddy-data:/data
       - caddy-config:/config
     depends_on:
@@ -135,6 +133,5 @@ networks:
 volumes:
   db:
   media:
-  static:
   caddy-data:
   caddy-config:

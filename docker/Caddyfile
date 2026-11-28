@@ -1,4 +1,4 @@
-# Caddy devant Copronome : TLS, fichiers statiques, limite de corps,
+# Caddy devant Copronome : TLS, limite de corps,
 # journal d'accès sans jeton. Domaine : COPRONOME_DOMAINE (localhost = CA
 # interne de Caddy, pour l'essai local).
 {
@@ -14,14 +14,9 @@
 		max_size {$COPRONOME_CORPS_MAX_MO:21}MiB
 	}
 
-	handle_path /static/* {
-		root * /srv/static
-		file_server
-	}
-
-	handle {
-		reverse_proxy app:8000
-	}
+	# Tout va à l'app, statiques compris (WhiteNoise) : ce frontal ne
+	# partage aucun fichier avec elle.
+	reverse_proxy app:8000
 
 	# Les URL d'iCal, d'invitation, de réinitialisation et de confirmation
 	# portent un jeton qui vaut accès : il ne doit pas atterrir dans le

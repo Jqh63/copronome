@@ -78,6 +78,8 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    # Statiques servis par l'app elle-même (doc WhiteNoise : juste après SecurityMiddleware).
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "copronome.middleware.EnTetesSecurite",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -191,6 +193,13 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATICFILES_DIRS = [BASE_DIR / "copronome" / "static"]
 STATIC_ROOT = Path(env("STATIC_ROOT", BASE_DIR / "staticfiles"))
+# Noms hachés + versions compressées, produits au build de l'image
+# (collectstatic du Dockerfile) : l'app sert ses statiques avec un cache
+# d'un an, aucun frontal n'a de fichier à partager avec elle.
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+}
 MEDIA_ROOT = Path(env("MEDIA_ROOT", BASE_DIR / "media"))
 # Aucun MEDIA_URL : les fichiers ne sont servis que par la vue documents:telecharger.
 DOCUMENT_TAILLE_MAX = int(env("DOCUMENT_TAILLE_MAX_MO", "20")) * 1024 * 1024

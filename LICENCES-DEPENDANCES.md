@@ -22,6 +22,7 @@ Inventaire de ce que l'image de Copronome embarque, tenu à jour avec `requireme
 | qrcode | 8.2 | BSD (texte du paquet) | classificateur PyPI « Other/Proprietary License » aussi déclaré : **à vérifier** |
 | sqlparse | 0.6.1 | BSD-3-Clause | |
 | typing-extensions | 4.16.0 | PSF-2.0 | |
+| whitenoise | 6.12.0 | MIT | |
 
 ## Images Docker
 

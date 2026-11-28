@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Essai de bout en bout du compose.yaml (CI, ou à la main avec Docker) :
 # construit, démarre, puis vérifie à travers Caddy la sonde, les en-têtes de
-# sécurité, les fichiers statiques, la limite de corps (413), l'absence de
+# sécurité, les fichiers statiques servis par l'app, la limite de corps (413), l'absence de
 # jeton dans le journal (avec contrôle positif du masquage), le rôle Postgres
 # restreint de l'app et le signe de vie des rappels. Projet compose isolé,
 # détruit à la sortie (volumes compris).
@@ -38,10 +38,13 @@ for e in content-security-policy strict-transport-security x-content-type-option
     grep -qi "^$e:" <<<"$entetes" || echec "en-tête $e absent"
 done
 
-css=$(cd copronome/static && find . -name '*.css' -print -quit)
-[ -n "$css" ] || echec "aucune feuille de style dans copronome/static"
-code=$(curl -sk -o /dev/null -w '%{http_code}' "$URL/static/${css#./}")
-[ "$code" = 200 ] || echec "statique ${css#./} : HTTP $code"
+# Statiques servis par l'app (WhiteNoise) : la page cite le nom haché, servi
+# avec un cache immuable ; Caddy ne fait que relayer.
+css=$(curl -sk "$URL/compte/login/" | grep -o '/static/[^"]*\.css' | head -1)
+grep -qE '^/static/copronome\.[0-9a-f]{12}\.css$' <<<"$css" || echec "feuille de style non hachée : '${css}'"
+entetes_css=$(curl -sk -D - -o /dev/null -H 'Accept-Encoding: gzip' "$URL$css")
+grep -q '^HTTP/[0-9.]* 200' <<<"$entetes_css" || echec "statique $css : $(head -1 <<<"$entetes_css")"
+grep -qi '^cache-control:.*immutable' <<<"$entetes_css" || echec "statique $css : pas de cache immuable"
 
 head -c $((4 * 1024 * 1024)) /dev/zero >/tmp/gros.bin
 code=$(curl -sk -o /dev/null -w '%{http_code}' --data-binary @/tmp/gros.bin "$URL/documents/")
