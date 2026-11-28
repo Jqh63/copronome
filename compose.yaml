@@ -1,20 +1,23 @@
-# Une instance Copronome (une copropriété) : app (gunicorn), Postgres,
-# rappels quotidiens. Configuration par un fichier d'environnement (modèle :
+# Une instance Copronome (une copropriété) : app (gunicorn), rappels
+# quotidiens, migrations. Configuration par un fichier d'environnement (modèle :
 # env.exemple ; sur un serveur, celui d'exploitation/creer.py) ; les trois
 # secrets sont obligatoires, compose refuse sinon. L'instance ne publie aucun
-# port : le frontal (frontal/compose.yaml, à démarrer d'abord) joint l'app
-# par le réseau partagé `copronome-frontal`, sous l'alias copronome-<id>.
+# port : le frontal (frontal/compose.yaml) joint l'app par le réseau partagé
+# `copronome-frontal`, sous l'alias copronome-<id> ; sa base vit dans le
+# cluster du serveur (postgres/compose.yaml), joint par le réseau interne
+# `copronome-base`. Frontal et cluster démarrent d'abord, la base de
+# l'instance est provisionnée avant son premier `up` (README).
 #   docker compose -p copronome-<id> --env-file <id>/instance.env up -d --build
 #   docker compose -p copronome-<id> --env-file ... run --rm app inviter ...
 # Images tierces épinglées par digest.
 
-# Deux rôles Postgres : le propriétaire (superutilisateur de l'image, mot de
+# Deux rôles Postgres, créés par le provisionnement (exploitation/postgres.py),
+# ni l'un ni l'autre superutilisateur : le propriétaire de la base (mot de
 # passe COPRONOME_DB_PASSWORD) ne sert qu'au service ponctuel `migrer` ;
 # l'app et les rappels tournent sous un rôle restreint (COPRONOME_DB_APP_*),
 # sans UPDATE ni DELETE sur les journaux, incapable de retirer un trigger.
-# Base, propriétaire et rôle de l'app sont nommés par instance
-# (COPRONOME_DB_NAME, COPRONOME_DB_OWNER, COPRONOME_DB_APP_USER) : sur un
-# cluster partagé, les rôles sont communs à toutes les bases.
+# Base et rôles sont nommés par instance (COPRONOME_DB_NAME, COPRONOME_DB_OWNER,
+# COPRONOME_DB_APP_USER) : les rôles sont communs à tout le cluster.
 x-env: &env
   COPRONOME_SECRET_KEY: ${COPRONOME_SECRET_KEY:?COPRONOME_SECRET_KEY manquant dans .env}
   COPRONOME_ALLOWED_HOSTS: ${COPRONOME_DOMAINE:-localhost}
@@ -23,7 +26,7 @@ x-env: &env
   COPRONOME_INSTANCE_ID: ${COPRONOME_INSTANCE_ID:-local}
   COPRONOME_TRUSTED_PROXY_COUNT: "1"
   COPRONOME_DB_ENGINE: postgres
-  COPRONOME_DB_HOST: db
+  COPRONOME_DB_HOST: copronome-postgres
   COPRONOME_DB_NAME: ${COPRONOME_DB_NAME:-copronome}
   COPRONOME_DOCUMENT_TAILLE_MAX_MO: ${COPRONOME_DOCUMENT_TAILLE_MAX_MO:-20}
   COPRONOME_DOCUMENTS_QUOTA_MO: ${COPRONOME_DOCUMENTS_QUOTA_MO:-2048}
@@ -59,11 +62,7 @@ services:
       COPRONOME_DB_USER: ${COPRONOME_DB_OWNER:-copronome}
       COPRONOME_DB_PASSWORD: ${COPRONOME_DB_PASSWORD:?COPRONOME_DB_PASSWORD manquant dans .env}
       COPRONOME_DB_APP_USER: ${COPRONOME_DB_APP_USER:-copronome_app}
-      COPRONOME_DB_APP_PASSWORD: ${COPRONOME_DB_APP_PASSWORD:?COPRONOME_DB_APP_PASSWORD manquant dans .env}
     networks: [base]
-    depends_on:
-      db:
-        condition: service_healthy
 
   app:
     <<: *app
@@ -92,28 +91,11 @@ services:
       app:
         condition: service_healthy
 
-  db:
-    # même digest que la CI
-    image: postgres:17-alpine@sha256:f9cf3e1f0066f0eb0c48707d864f0ac5941e9ff454a072077d97a4d278d07d73
-    restart: unless-stopped
-    security_opt: ["no-new-privileges:true"]
-    environment:
-      POSTGRES_USER: ${COPRONOME_DB_OWNER:-copronome}
-      POSTGRES_DB: ${COPRONOME_DB_NAME:-copronome}
-      POSTGRES_PASSWORD: ${COPRONOME_DB_PASSWORD:?COPRONOME_DB_PASSWORD manquant dans .env}
-    volumes:
-      - db:/var/lib/postgresql/data
-    networks: [base]
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
 networks:
-  # La base n'a aucune sortie : seuls app et rappels la joignent.
+  # Réseau interne du cluster Postgres (postgres/compose.yaml), sans sortie.
   base:
-    internal: true
+    external: true
+    name: copronome-base
   # Sortie de l'app et des rappels (relais mail).
   sortie: {}
   # Réseau du frontal, partagé par les instances du serveur : une app y est
@@ -123,5 +105,4 @@ networks:
     name: copronome-frontal
 
 volumes:
-  db:
   media:

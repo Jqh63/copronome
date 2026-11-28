@@ -16,9 +16,18 @@ pytestmark = [
 ROLE = "copronome_app"
 
 
+def _creer_role(nom, attributs="LOGIN"):
+    # Rôle créé par le banc (superutilisateur en CI), comme le provisionnement.
+    with connection.cursor() as c:
+        c.execute("SELECT 1 FROM pg_roles WHERE rolname = %s", [nom])
+        if c.fetchone() is None:
+            c.execute(f"CREATE ROLE {nom} {attributs}")
+
+
 @pytest.fixture
 def droits(monkeypatch):
-    monkeypatch.setenv("COPRONOME_DB_APP_PASSWORD", "essai-ci")
+    monkeypatch.setenv("COPRONOME_DB_APP_USER", ROLE)
+    _creer_role(ROLE)
     call_command("appliquer_droits_base")
     call_command("appliquer_droits_base")  # idempotent
 
@@ -86,7 +95,21 @@ def test_l_app_peut_inserer_au_journal(droits):
     )
 
 
-def test_mot_de_passe_obligatoire(monkeypatch):
-    monkeypatch.delenv("COPRONOME_DB_APP_PASSWORD", raising=False)
-    with pytest.raises(CommandError):
+def test_role_absent_refuse(monkeypatch):
+    monkeypatch.setenv("COPRONOME_DB_APP_USER", "copronome_role_absent")
+    with pytest.raises(CommandError, match="absent"):
+        call_command("appliquer_droits_base")
+
+
+def test_role_d_administration_refuse(monkeypatch):
+    monkeypatch.setenv("COPRONOME_DB_APP_USER", "copronome_role_createdb")
+    _creer_role("copronome_role_createdb", "LOGIN CREATEDB")
+    with pytest.raises(CommandError, match="administration"):
+        call_command("appliquer_droits_base")
+
+
+def test_role_proprietaire_refuse(monkeypatch):
+    # Le banc tourne sous le superutilisateur : refusé avant même le contrôle du propriétaire.
+    monkeypatch.setenv("COPRONOME_DB_APP_USER", connection.settings_dict["USER"])
+    with pytest.raises(CommandError, match="refusé"):
         call_command("appliquer_droits_base")

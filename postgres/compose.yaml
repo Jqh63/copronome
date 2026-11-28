@@ -1,0 +1,47 @@
+# Cluster Postgres d'un serveur Copronome, partagé par toutes les instances
+# (ADR 2026-11-28-domaine-copronome-et-instances § 2) : une base et deux rôles
+# par instance, provisionnés par exploitation/postgres.py. Le pg_hba est généré
+# depuis le registre : chaque base n'accepte que ses deux rôles, le
+# superutilisateur n'entre que par la socket locale (exec -u postgres).
+# Démarrer le cluster AVANT les instances : il crée le réseau interne
+# `copronome-base`, où les instances le joignent sous l'alias copronome-postgres.
+#   python -m exploitation.postgres configurer <registre.toml> <racine>
+#   COPRONOME_POSTGRES_CONF=<racine>/_cluster/conf docker compose -f postgres/compose.yaml \
+#     --env-file <racine>/_cluster/postgres.env up -d --wait
+#   python -m exploitation.postgres sql <racine>/<id>/instance.env |
+#     docker compose -f postgres/compose.yaml exec -T -u postgres postgres psql -q -d postgres
+# Limites assumées : mises à jour majeures et plafond de connexions
+# (max_connections, 100 par défaut ; ≈ workers + 2 par instance) partagés.
+name: copronome-postgres
+
+services:
+  postgres:
+    # même digest que la CI
+    image: postgres:17-alpine@sha256:f9cf3e1f0066f0eb0c48707d864f0ac5941e9ff454a072077d97a4d278d07d73
+    restart: unless-stopped
+    security_opt: ["no-new-privileges:true"]
+    command: ["postgres", "-c", "hba_file=/etc/copronome-postgres/pg_hba.conf"]
+    environment:
+      POSTGRES_PASSWORD: ${COPRONOME_POSTGRES_PASSWORD:?COPRONOME_POSTGRES_PASSWORD manquant (postgres.env)}
+    volumes:
+      # Le dossier, pas le fichier : le générateur remplace pg_hba.conf par
+      # renommage (nouvel inode), qu'un montage de fichier ne verrait pas.
+      - ${COPRONOME_POSTGRES_CONF:?dossier du pg_hba généré manquant}:/etc/copronome-postgres:ro
+      - donnees:/var/lib/postgresql/data
+    networks:
+      base:
+        aliases: [copronome-postgres]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+networks:
+  # Aucune sortie : seules les instances (app, rappels, migrer) le joignent.
+  base:
+    name: copronome-base
+    internal: true
+
+volumes:
+  donnees:
