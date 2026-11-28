@@ -1,5 +1,5 @@
-{# Copie du gabarit allauth 65.23 : lien d'inscription retiré (inscription fermée, comptes sur invitation). #}
-{% load i18n %}
+{# Copie du gabarit allauth 65.23 : lien d'inscription retiré (inscription fermée, comptes sur invitation), feuille de style de l'app ajoutée. #}
+{% load i18n static %}
 <!DOCTYPE html>
 <html>
     <head>
@@ -10,6 +10,7 @@
             {% block head_title %}
             {% endblock head_title %}
         </title>
+        <link rel="stylesheet" href="{% static 'copronome.css' %}">
         {% block extra_head %}
         {% endblock extra_head %}
     </head>
