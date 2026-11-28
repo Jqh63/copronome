@@ -18,6 +18,9 @@ services:
   postgres:
     # même digest que la CI
     image: postgres:17-alpine@sha256:f9cf3e1f0066f0eb0c48707d864f0ac5941e9ff454a072077d97a4d278d07d73
+    # Nom fixe : visé par docker exec (sauvegarde, restauration), comme le
+    # réseau copronome-base ; un seul cluster par hôte Docker.
+    container_name: copronome-postgres
     restart: unless-stopped
     security_opt: ["no-new-privileges:true"]
     command: ["postgres", "-c", "hba_file=/etc/copronome-postgres/pg_hba.conf"]

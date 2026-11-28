@@ -9,7 +9,8 @@
 # l'absence de port publié par les instances, puis à travers le frontal la
 # sonde, les en-têtes de sécurité, les statiques servis par l'app, la limite
 # de corps (413), l'absence de jeton dans le journal (avec contrôle positif),
-# le rôle Postgres restreint, les cookies __Host- et les rappels. Projets
+# le rôle Postgres restreint, les cookies __Host- et les rappels, puis la
+# sauvegarde chiffrée de A (exploitation/sauvegarder.py, `age` requis). Projets
 # compose isolés, détruits à la sortie (volumes compris).
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -212,5 +213,38 @@ for _ in $(seq 1 30); do
     sleep 2
 done
 [ -n "$vivant" ] || echec "rappels : aucun signe de vie"
+
+# Sauvegarde chiffrée de A : un fichier témoin dans ses fichiers, une clé age
+# propre à A (le serveur n'a que la clé publique). Rien de lisible en clair ;
+# la clé de A déchiffre une copie Postgres et le témoin (contrôle positif), une
+# autre clé échoue.
+temoin="temoin-$(openssl rand -hex 6)"
+instance $A exec -T app python -c "open('/srv/media/$temoin.txt', 'w').write('$temoin')" || echec "dépôt du témoin"
+age-keygen -o "$racine/cle-$A.txt" 2>/dev/null
+age-keygen -o "$racine/autre-cle.txt" 2>/dev/null
+echo "COPRONOME_SAUVEGARDE_DESTINATAIRE=$(age-keygen -y "$racine/cle-$A.txt")" >>"$racine/$A/instance.env"
+python3 -m exploitation.sauvegarder "$racine/$A/instance.env" "$racine/sauvegardes" --projet "copronome-essai-$A" ||
+    echec "sauvegarde de A"
+sauvegarde=$(ls -d "$racine/sauvegardes/$A"/2*)
+for partie in base.dump.age fichiers.tar.age; do
+    [ -s "$sauvegarde/$partie" ] || echec "sauvegarde : $partie absent ou vide"
+    if grep -qaE "PGDMP|$temoin" "$sauvegarde/$partie"; then echec "sauvegarde : $partie lisible en clair"; fi
+done
+# Déchiffré dans des fichiers : `| head` ou `| grep -q` couperait le tube (141 sous pipefail).
+age -d -i "$racine/cle-$A.txt" -o "$racine/base.dump" "$sauvegarde/base.dump.age" || echec "déchiffrement de la base"
+age -d -i "$racine/cle-$A.txt" -o "$racine/fichiers.tar" "$sauvegarde/fichiers.tar.age" || echec "déchiffrement des fichiers"
+[ "$(head -c 5 "$racine/base.dump")" = PGDMP ] || echec "sauvegarde : la base déchiffrée n'est pas une copie Postgres"
+tar -tf "$racine/fichiers.tar" >"$racine/fichiers.liste" || echec "sauvegarde : archive des fichiers illisible"
+grep -q "$temoin.txt" "$racine/fichiers.liste" || echec "sauvegarde : témoin absent des fichiers"
+if age -d -i "$racine/autre-cle.txt" "$sauvegarde/base.dump.age" >/dev/null 2>&1; then
+    echec "sauvegarde : déchiffrée par une autre clé"
+fi
+python3 - "$sauvegarde" <<'PY' || echec "sauvegarde : manifeste incohérent"
+import hashlib, json, pathlib, sys
+d = pathlib.Path(sys.argv[1])
+m = json.loads((d / "MANIFESTE").read_text())
+for nom, attendu in m["parties"].items():
+    assert hashlib.sha256((d / nom).read_bytes()).hexdigest() == attendu["sha256"], nom
+PY
 
 echo "essai des conteneurs : OK"
