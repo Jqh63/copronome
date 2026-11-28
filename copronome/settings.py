@@ -9,6 +9,7 @@ tourner avec un défaut faible.
 
 import os
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from django.core.exceptions import ImproperlyConfigured
 
@@ -31,10 +32,28 @@ if not SECRET_KEY:
         raise ImproperlyConfigured("COPRONOME_SECRET_KEY est obligatoire hors mode debug")
     SECRET_KEY = "dev-seulement-jamais-en-production"  # noqa: S105 — debug seulement
 
+# Identifiant opaque et immuable de l'instance, posé par le plan de contrôle
+# (ADR domaine et instances, § 3-4) : il rend uniques les UID de l'iCal
+# entre instances.
+INSTANCE_ID = env("INSTANCE_ID", "local")
+
+# Hôtes et origines : explicites, sinon dérivés de l'URL publique (l'adresse
+# <slug>.copronome.fr que pose le plan de contrôle).
+URL_PUBLIQUE = env("URL_PUBLIQUE", "")
 ALLOWED_HOSTS = env_liste("ALLOWED_HOSTS")
+CSRF_TRUSTED_ORIGINS = env_liste("CSRF_TRUSTED_ORIGINS")
+if URL_PUBLIQUE:
+    _url = urlsplit(URL_PUBLIQUE)
+    ALLOWED_HOSTS = ALLOWED_HOSTS or [_url.hostname]
+    CSRF_TRUSTED_ORIGINS = CSRF_TRUSTED_ORIGINS or [f"{_url.scheme}://{_url.netloc}"]
 if DEBUG and not ALLOWED_HOSTS:
     ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
-CSRF_TRUSTED_ORIGINS = env_liste("CSRF_TRUSTED_ORIGINS")
+# Une instance ne sert que son nom : « * » ou « .copronome.fr » accepterait
+# les requêtes destinées aux instances voisines.
+if not DEBUG and any(h == "*" or h.startswith(".") for h in ALLOWED_HOSTS):
+    raise ImproperlyConfigured("ALLOWED_HOSTS : un nom exact, sans joker")
+if not DEBUG and any("*" in o for o in CSRF_TRUSTED_ORIGINS):
+    raise ImproperlyConfigured("CSRF_TRUSTED_ORIGINS : une origine exacte, sans joker")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -187,12 +206,23 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = "same-origin"
 SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin"
 
+# Messages en session : aucun cookie hors des deux ci-dessous.
+MESSAGE_STORAGE = "django.contrib.messages.storage.session.SessionStorage"
+
 if not DEBUG:
     # Derrière Caddy, qui termine le TLS et pose X-Forwarded-Proto.
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     SECURE_SSL_REDIRECT = env("SSL_REDIRECT", "1") == "1"
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+    # Préfixe __Host- : le navigateur refuse le cookie s'il porte un Domain,
+    # un Path autre que / ou n'est pas Secure. Une instance voisine sous le
+    # même domaine ne peut donc ni le lire ni l'écraser (ADR domaine et
+    # instances, § 3). Exige HTTPS : jamais en mode debug.
+    SESSION_COOKIE_NAME = "__Host-session"
+    CSRF_COOKIE_NAME = "__Host-csrftoken"
+    SESSION_COOKIE_DOMAIN = None
+    CSRF_COOKIE_DOMAIN = None
     SECURE_HSTS_SECONDS = int(env("HSTS_SECONDS", "31536000"))
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 

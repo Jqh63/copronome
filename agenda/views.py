@@ -1,6 +1,7 @@
 import datetime
 
 from allauth.mfa.utils import is_mfa_enabled
+from django.conf import settings
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -107,7 +108,7 @@ def flux_ical(request, jeton):
         for e in _visibles(utilisateur).filter(debut__gte=depuis):
             entrees.append(
                 {
-                    "uid": f"agenda-{e.pk}@copronome",
+                    "uid": f"agenda-{e.pk}@{settings.INSTANCE_ID}.copronome",
                     "titre": e.titre,
                     "debut": e.debut,
                     "fin": e.fin,
@@ -120,7 +121,7 @@ def flux_ical(request, jeton):
         for e in echeances_visibles(utilisateur).filter(active=True):
             entrees.append(
                 {
-                    "uid": f"echeance-{e.pk}@copronome",
+                    "uid": f"echeance-{e.pk}@{settings.INSTANCE_ID}.copronome",
                     "titre": f"Échéance : {e.titre}",
                     "debut": e.prochaine_le,
                 }

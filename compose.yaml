@@ -10,14 +10,19 @@
 # passe COPRONOME_DB_PASSWORD) ne sert qu'au service ponctuel `migrer` ;
 # l'app et les rappels tournent sous un rôle restreint (COPRONOME_DB_APP_*),
 # sans UPDATE ni DELETE sur les journaux, incapable de retirer un trigger.
+# Base, propriétaire et rôle de l'app sont nommés par instance
+# (COPRONOME_DB_NAME, COPRONOME_DB_OWNER, COPRONOME_DB_APP_USER) : sur un
+# cluster partagé, les rôles sont communs à toutes les bases.
 x-env: &env
   COPRONOME_SECRET_KEY: ${COPRONOME_SECRET_KEY:?COPRONOME_SECRET_KEY manquant dans .env}
   COPRONOME_ALLOWED_HOSTS: ${COPRONOME_DOMAINE:-localhost}
   COPRONOME_CSRF_TRUSTED_ORIGINS: ${COPRONOME_URL_PUBLIQUE:-https://localhost:8443}
   COPRONOME_URL_PUBLIQUE: ${COPRONOME_URL_PUBLIQUE:-https://localhost:8443}
+  COPRONOME_INSTANCE_ID: ${COPRONOME_INSTANCE_ID:-local}
   COPRONOME_TRUSTED_PROXY_COUNT: "1"
   COPRONOME_DB_ENGINE: postgres
   COPRONOME_DB_HOST: db
+  COPRONOME_DB_NAME: ${COPRONOME_DB_NAME:-copronome}
   COPRONOME_DOCUMENT_TAILLE_MAX_MO: ${COPRONOME_DOCUMENT_TAILLE_MAX_MO:-20}
   COPRONOME_DOCUMENTS_QUOTA_MO: ${COPRONOME_DOCUMENTS_QUOTA_MO:-2048}
   COPRONOME_EMAIL_FROM: ${COPRONOME_EMAIL_FROM:-copronome@localhost}
@@ -49,7 +54,7 @@ services:
     restart: "no"
     environment:
       <<: *env
-      COPRONOME_DB_USER: copronome
+      COPRONOME_DB_USER: ${COPRONOME_DB_OWNER:-copronome}
       COPRONOME_DB_PASSWORD: ${COPRONOME_DB_PASSWORD:?COPRONOME_DB_PASSWORD manquant dans .env}
       COPRONOME_DB_APP_USER: ${COPRONOME_DB_APP_USER:-copronome_app}
       COPRONOME_DB_APP_PASSWORD: ${COPRONOME_DB_APP_PASSWORD:?COPRONOME_DB_APP_PASSWORD manquant dans .env}
@@ -87,14 +92,14 @@ services:
     restart: unless-stopped
     security_opt: ["no-new-privileges:true"]
     environment:
-      POSTGRES_USER: copronome
-      POSTGRES_DB: copronome
+      POSTGRES_USER: ${COPRONOME_DB_OWNER:-copronome}
+      POSTGRES_DB: ${COPRONOME_DB_NAME:-copronome}
       POSTGRES_PASSWORD: ${COPRONOME_DB_PASSWORD:?COPRONOME_DB_PASSWORD manquant dans .env}
     volumes:
       - db:/var/lib/postgresql/data
     networks: [base]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U copronome -d copronome"]
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
       interval: 5s
       timeout: 5s
       retries: 10

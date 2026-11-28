@@ -44,6 +44,9 @@ class Command(BaseCommand):
                 r,
                 sql.Literal(mot_de_passe),
             )
+            # Cluster partagé entre instances (ADR domaine et instances, § 2) :
+            # seuls le propriétaire et le rôle de l'app se connectent à la base.
+            executer(sql.SQL("REVOKE CONNECT ON DATABASE {} FROM PUBLIC"), sql.Identifier(base))
             executer(sql.SQL("GRANT CONNECT ON DATABASE {} TO {}"), sql.Identifier(base), r)
             executer(sql.SQL("GRANT USAGE ON SCHEMA public TO {}"), r)
             executer(sql.SQL("REVOKE CREATE ON SCHEMA public FROM {}"), r)

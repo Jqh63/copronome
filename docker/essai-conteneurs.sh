@@ -14,6 +14,11 @@ export COPRONOME_DB_PASSWORD="essai-$(openssl rand -hex 12)"
 export COPRONOME_DB_APP_PASSWORD="essai-$(openssl rand -hex 12)"
 export COPRONOME_PORT_HTTPS=18443
 export COPRONOME_URL_PUBLIQUE=https://localhost:18443
+# Noms de base et de rôles d'une instance, autres que les défauts : prouve
+# que rien ne reste câblé sur « copronome ».
+export COPRONOME_DB_NAME=base_essai
+export COPRONOME_DB_OWNER=proprio_essai
+export COPRONOME_DB_APP_USER=app_essai
 export COPRONOME_DOCUMENT_TAILLE_MAX_MO=2
 export COPRONOME_CORPS_MAX_MO=3
 URL=https://localhost:18443
@@ -55,19 +60,28 @@ grep -q '/agenda/ical/\[jeton\]' <<<"$journal" || echec "contrôle positif : URI
 role=$(docker compose exec -T app python manage.py shell <<'PY'
 from django.db import connection
 with connection.cursor() as c:
-    c.execute("SELECT current_user, rolsuper FROM pg_roles WHERE rolname = current_user")
-    nom, superu = c.fetchone()
+    c.execute(
+        "SELECT current_user, rolsuper, current_database() FROM pg_roles WHERE rolname = current_user"
+    )
+    nom, superu, base = c.fetchone()
     c.execute(
         "SELECT has_table_privilege('audit_journalaudit', 'UPDATE'),"
         " has_table_privilege('audit_journalaudit', 'DELETE'),"
         " has_table_privilege('audit_journalaudit', 'TRUNCATE'),"
         " has_table_privilege('audit_journalaudit', 'INSERT')"
     )
-    print("ROLE=%s SUPER=%s UPDATE=%s DELETE=%s TRUNCATE=%s INSERT=%s" % (nom, superu, *c.fetchone()))
+    print("BASE=%s ROLE=%s SUPER=%s UPDATE=%s DELETE=%s TRUNCATE=%s INSERT=%s" % (base, nom, superu, *c.fetchone()))
 PY
 ) || echec "rôle de l'app : shell en échec"
-attendu="ROLE=copronome_app SUPER=False UPDATE=False DELETE=False TRUNCATE=False INSERT=True"
+attendu="BASE=base_essai ROLE=app_essai SUPER=False UPDATE=False DELETE=False TRUNCATE=False INSERT=True"
 grep -qF "$attendu" <<<"$role" || echec "rôle de l'app : $role"
+
+# Cookies d'une instance sous un domaine partagé : préfixe __Host-, Secure,
+# Path=/, sans Domain (ADR domaine et instances, § 3).
+cookie=$(curl -sk -D - -o /dev/null "$URL/compte/login/" | grep -i '^set-cookie: __Host-csrftoken=') ||
+    echec "cookie CSRF __Host- absent"
+grep -qi 'secure' <<<"$cookie" && grep -qi 'path=/' <<<"$cookie" || echec "cookie CSRF : $cookie"
+if grep -qi 'domain=' <<<"$cookie"; then echec "cookie CSRF avec Domain : $cookie"; fi
 
 vivant=""
 for _ in $(seq 1 30); do

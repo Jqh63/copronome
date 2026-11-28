@@ -49,6 +49,15 @@ def test_tables_ordinaires_modifiables_migrations_en_lecture(droits):
     assert _a("django_migrations", "SELECT") and not _a("django_migrations", "INSERT")
 
 
+def test_seuls_l_app_et_le_proprietaire_se_connectent(droits):
+    base = connection.settings_dict["NAME"]
+    with connection.cursor() as c:
+        c.execute("SELECT has_database_privilege('public', %s, 'CONNECT')", [base])
+        assert c.fetchone()[0] is False
+        c.execute("SELECT has_database_privilege(%s, %s, 'CONNECT')", [ROLE, base])
+        assert c.fetchone()[0] is True
+
+
 def test_role_sans_privilege_d_administration(droits):
     with connection.cursor() as c:
         c.execute(
