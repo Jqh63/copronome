@@ -132,6 +132,13 @@ def test_demo_avec_activite():
     for incident in Incident.objects.all():
         incident.full_clean()
 
+    from eau.models import Compteur, historique
+
+    assert Compteur.objects.count() == 8
+    assert Compteur.objects.filter(partie_commune__isnull=False).count() == 1
+    baisses = [ligne for c in Compteur.objects.all() for ligne in historique(c) if ligne["baisse"]]
+    assert len(baisses) == 1
+
 
 def test_pages_admin_des_modeles_s_ouvrent(admin_client, admin_user):
     from allauth.mfa.models import Authenticator
