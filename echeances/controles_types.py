@@ -24,8 +24,9 @@ bac à sable, base du 2026-11-26) :
   substantielle de l'ouvrage ; service-public F742.
 
 - Ascenseur, contrôle technique : CCH R134-11 (en vigueur depuis le
-  2026-05-15), « tous les cinq ans » ; service-public F10538. La visite d'entretien toutes les 6 semaines relève du contrat
-  de l'ascensoriste, pas d'une échéance du CS.
+  2026-05-15), « tous les cinq ans » ; service-public F10538. La visite
+  d'entretien toutes les 6 semaines relève du contrat de l'ascensoriste,
+  pas d'une échéance du CS.
 - Ramonage : CSP R1331-71 (en vigueur depuis le 2023-10-01, lu sur
   Légifrance), « au moins tous les douze mois » ; appareils collectifs « au
   moins tous les six mois, dont une fois pendant la période de chauffe » ; un
@@ -94,7 +95,8 @@ CONTROLES_TYPES = (
         reference="Décret 67-223 art. 28 ; service-public.gouv.fr F2608",
         notes=(
             "Durée maximale ; saisir la durée votée en AG si elle est plus courte. "
-            "Un an au plus pendant les dix ans suivant la réception si le syndic a participé à la construction."
+            "Un an au plus pendant les dix ans suivant la réception "
+            "si le syndic a participé à la construction."
         ),
     ),
     ControleType(
