@@ -40,7 +40,9 @@ done
 
 # Statiques servis par l'app (WhiteNoise) : la page cite le nom haché, servi
 # avec un cache immuable ; Caddy ne fait que relayer.
-css=$(curl -sk "$URL/compte/login/" | grep -o '/static/[^"]*\.css' | head -1)
+page=$(curl -sk "$URL/compte/login/")
+css=$(grep -o '/static/[^"]*\.css' <<<"$page" | head -1 || true)
+[ -n "$css" ] || echec "aucune feuille de style citée par /compte/login/ : $(grep -i -m3 'stylesheet\|<title' <<<"$page" || head -c 300 <<<"$page")"
 grep -qE '^/static/copronome\.[0-9a-f]{12}\.css$' <<<"$css" || echec "feuille de style non hachée : '${css}'"
 entetes_css=$(curl -sk -D - -o /dev/null -H 'Accept-Encoding: gzip' "$URL$css")
 grep -q '^HTTP/[0-9.]* 200' <<<"$entetes_css" || echec "statique $css : $(head -1 <<<"$entetes_css")"
