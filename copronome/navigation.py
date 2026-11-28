@@ -18,6 +18,7 @@ ENTREES = (
     ("Agenda", "agenda:liste"),
     ("Eau", "eau:liste"),
     ("Journal", "audit:journal"),
+    ("Copropriété", "identite"),
 )
 
 

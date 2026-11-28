@@ -10,8 +10,10 @@ from django.urls import reverse
 
 from acces.models import Affectation, Role
 from agenda.models import JetonAgenda
+from audit.models import Action, JournalAudit
 from copro.identite import expediteur, nom_affiche
 from copro.models import Copropriete
+from tests.test_acces import _compte
 
 pytestmark = pytest.mark.django_db
 
@@ -77,3 +79,45 @@ def test_commande_idempotente_et_validee():
     assert Copropriete.courante().immatriculation == "DEMO-0002"
     with pytest.raises(CommandError, match="code_insee"):
         call_command("copropriete", code_insee="63")
+
+
+# Page d'édition de l'identité (syndic non professionnel, président du CS) :
+# plus besoin de la commande `copropriete` ni de l'admin.
+
+CHAMPS_PAGE = {
+    "nom": "Les Tilleuls",
+    "commune": "Exempleville",
+    "code_insee": "99999",
+    "adresse": "",
+    "immatriculation": "",
+}
+
+
+@pytest.mark.parametrize("role", [Role.SYNDIC_NON_PRO, Role.PRESIDENT])
+def test_page_identite_cree_puis_modifie_et_journalise(client, role):
+    client.force_login(_compte("gere@example.org", role))
+    assert "Copropriété" in client.get("/").content.decode(), "entrée de menu"
+    reponse = client.post(reverse("identite"), CHAMPS_PAGE)
+    assert reponse.status_code == 302
+    assert str(Copropriete.courante()) == "Les Tilleuls (Exempleville)"
+    client.post(reverse("identite"), CHAMPS_PAGE | {"nom": "Les Érables"})
+    assert nom_affiche() == "Les Érables (Exempleville)"
+    assert Copropriete.objects.count() == 1
+    trace = JournalAudit.objects.filter(action=Action.COPROPRIETE_MODIFIEE).order_by("pk").last()
+    assert trace.acteur.email == "gere@example.org"
+    assert trace.detail["champs"] == {"nom": ["Les Tilleuls", "Les Érables"]}
+
+
+def test_page_identite_refuse_qui_ne_gere_pas(client):
+    _identite()
+    client.force_login(_compte("cs@example.org", Role.MEMBRE_CS))
+    assert "Copropriété</a>" not in client.get("/").content.decode()
+    assert client.post(reverse("identite"), CHAMPS_PAGE | {"nom": "Pirate"}).status_code == 403
+    assert Copropriete.courante().nom == "Les Tilleuls"
+
+
+def test_page_identite_valide_le_code_insee(client):
+    client.force_login(_compte("syndic@example.org", Role.SYNDIC_NON_PRO))
+    reponse = client.post(reverse("identite"), CHAMPS_PAGE | {"code_insee": "63000x"})
+    assert reponse.status_code == 400
+    assert Copropriete.courante() is None

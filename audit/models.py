@@ -28,6 +28,7 @@ class Action(models.TextChoices):
     DOCUMENT_RETIRE = "document_retire", "Document retiré"
     JOURNAL_EXPORTE = "journal_exporte", "Journal d'audit exporté"
     PERSONNE_EFFACEE = "personne_effacee", "Coordonnées d'une personne effacées"
+    COPROPRIETE_MODIFIEE = "copropriete_modifiee", "Identité de la copropriété modifiée"
 
 
 class JournalAuditQuerySet(models.QuerySet):

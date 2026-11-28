@@ -13,6 +13,7 @@ urlpatterns = [
     path("sante/", views.sante, name="sante"),
     path("mots/", views.mots, name="mots"),
     path("lots/", copro_views.liste_lots, name="lots"),
+    path("copropriete/", copro_views.identite, name="identite"),
     path("incidents/", include("incidents.urls")),
     path("documents/", include("documents.urls")),
     path("echeances/", include("echeances.urls")),

@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block titre %}Copropriété — {{ nom_instance }}{% endblock %}
+{% block contenu %}
+<h1>Identité de la copropriété</h1>
+<p>Le nom et la commune s'affichent dans les pages et dans les mails envoyés aux membres ; chaque changement est inscrit au journal.</p>
+{% if enregistre %}<p role="status">Identité enregistrée.</p>{% endif %}
+<form method="post">{% csrf_token %}{{ form.as_p }}<button type="submit">Enregistrer</button></form>
+{% endblock %}
