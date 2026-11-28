@@ -29,6 +29,10 @@ if a[0] == "inspect":
 if "pg_dump" in a:
     if echec == "pg_dump":
         sys.stderr.write("pg_dump: connexion refusée\\n"); sys.exit(1)
+    if echec == "age":
+        # Plus gros que le tampon du tube : age, sorti sans lire, casse le
+        # tube et le producteur meurt (BrokenPipe) — l'ordre réel de l'échec.
+        sys.stdout.write("D" * 1_000_000); sys.exit(0)
     sys.stdout.write("DUMP"); sys.exit(0)
 if a[0] == "run":
     sys.stdout.write("TAR"); sys.exit(0)
