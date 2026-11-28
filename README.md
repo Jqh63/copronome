@@ -60,9 +60,12 @@ En production, la configuration se lit dans les variables `COPRONOME_*` (modèle
 #   COPRONOME_DB_PASSWORD=<mot de passe du rôle propriétaire de la base>
 #   COPRONOME_DB_APP_PASSWORD=<mot de passe du rôle de l'app>
 docker compose up -d --build                  # https://localhost:8443 (CA interne de Caddy)
+docker compose run --rm app copropriete --nom "<nom>" --commune "<commune>" --code-insee <code>
 docker compose run --rm app inviter ...       # toute commande manage.py
 docker/essai-conteneurs.sh                    # essai de bout en bout (rejoué en CI)
 ```
+
+`copropriete` saisit l'identité de l'instance (nom, commune et code INSEE, adresse, numéro d'immatriculation au registre national), affichée dans les pages, l'objet et l'expéditeur des mails (« <nom> via Copronome ») et le nom du calendrier iCal ; rejouable, elle ne crée jamais un second enregistrement. Tant qu'elle n'est pas saisie, l'instance s'affiche « Copronome ».
 
 Variables propres au déploiement (défaut entre parenthèses) : `COPRONOME_DOMAINE` (`localhost`), `COPRONOME_URL_PUBLIQUE` (`https://localhost:8443`), `COPRONOME_PORT_HTTPS` (`8443`), `COPRONOME_CORPS_MAX_MO` (`21`, limite de corps de Caddy, à garder au-dessus de `COPRONOME_DOCUMENT_TAILLE_MAX_MO`), `COPRONOME_RAPPELS_INTERVALLE` (`86400` secondes), `COPRONOME_GUNICORN_WORKERS` (`2`), `COPRONOME_TRUSTED_PROXY_COUNT` (`1` derrière Caddy : IP du client pour la limite de tentatives de connexion). Le journal d'accès de Caddy masque les jetons des URL (iCal, invitation, réinitialisation, confirmation) ; gunicorn n'en écrit pas.
 

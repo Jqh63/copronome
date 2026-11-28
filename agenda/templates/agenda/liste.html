@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block titre %}Agenda — Copronome{% endblock %}
+{% block titre %}Agenda — {{ nom_instance }}{% endblock %}
 {% block contenu %}
 <h1>Agenda</h1>
 <p><a href="{% url 'agenda:creer' %}">Nouvel événement</a></p>

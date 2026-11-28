@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block titre %}Retirer un document — Copronome{% endblock %}
+{% block titre %}Retirer un document — {{ nom_instance }}{% endblock %}
 {% block contenu %}
 <h1>Retirer « {{ document.titre }} »</h1>
 <p>Le fichier sera effacé{% if versions %}, ainsi que {{ versions|length }} version{{ versions|length|pluralize }} précédente{{ versions|length|pluralize }}{% endif %}. Cette action ne se défait pas. Le titre, l'empreinte et le motif restent dans le journal.</p>

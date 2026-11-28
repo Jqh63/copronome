@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block titre %}Échéances — Copronome{% endblock %}
+{% block titre %}Échéances — {{ nom_instance }}{% endblock %}
 {% block contenu %}
 <h1>Échéances{% if closes %} closes{% endif %}</h1>
 <p><a href="{% url 'echeances:creer' %}">Nouvelle échéance</a> ·

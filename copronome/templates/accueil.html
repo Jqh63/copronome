@@ -1,5 +1,12 @@
 {% extends "base.html" %}
 {% block contenu %}
-<h1>Copronome</h1>
+<h1>{{ nom_instance }}</h1>
+{% if copropriete and user.is_authenticated %}
+<dl class="identite">
+  {% if copropriete.adresse %}<dt>Adresse</dt><dd>{{ copropriete.adresse|linebreaksbr }}</dd>{% endif %}
+  <dt>Commune</dt><dd>{{ copropriete.commune }} ({{ copropriete.code_insee }})</dd>
+  <dt>N° d'immatriculation</dt><dd>{{ copropriete.immatriculation|default:"non renseigné" }}</dd>
+</dl>
+{% endif %}
 <p>Gestion de copropriété pour le conseil syndical. En construction.</p>
 {% endblock %}

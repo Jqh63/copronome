@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block titre %}Remplacer un document — Copronome{% endblock %}
+{% block titre %}Remplacer un document — {{ nom_instance }}{% endblock %}
 {% block contenu %}
 <h1>Remplacer « {{ document.titre }} »</h1>
 <p>La nouvelle version garde le titre, la catégorie, la visibilité et le lieu. L'ancienne reste téléchargeable depuis la nouvelle.</p>

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block titre %}Documents — Copronome{% endblock %}
+{% block titre %}Documents — {{ nom_instance }}{% endblock %}
 {% block contenu %}
 <h1>Documents</h1>
 <p><a href="{% url 'documents:deposer' %}">Déposer un document</a></p>

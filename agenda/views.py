@@ -11,6 +11,7 @@ from acces.middleware import mfa_obligatoire
 from agenda import ical
 from agenda.forms import EvenementForm
 from agenda.models import Evenement, JetonAgenda
+from copro.identite import nom_affiche
 from echeances.views import visibles as echeances_visibles
 
 
@@ -124,7 +125,9 @@ def flux_ical(request, jeton):
                     "debut": e.prochaine_le,
                 }
             )
-    reponse = HttpResponse(ical.calendrier("Copronome", entrees), content_type="text/calendar; charset=utf-8")
+    reponse = HttpResponse(
+        ical.calendrier(nom_affiche(), entrees), content_type="text/calendar; charset=utf-8"
+    )
     reponse["Cache-Control"] = "private, no-store"
     reponse["Referrer-Policy"] = "no-referrer"
     return reponse

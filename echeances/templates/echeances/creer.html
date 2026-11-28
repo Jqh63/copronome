@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block titre %}Nouvelle échéance — Copronome{% endblock %}
+{% block titre %}Nouvelle échéance — {{ nom_instance }}{% endblock %}
 {% block contenu %}
 <h1>Nouvelle échéance</h1>
 <details{% if not modele %} open{% endif %}>

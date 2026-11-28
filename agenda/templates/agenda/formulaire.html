@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block titre %}{% if evenement %}Modifier{% else %}Nouvel{% endif %} événement — Copronome{% endblock %}
+{% block titre %}{% if evenement %}Modifier{% else %}Nouvel{% endif %} événement — {{ nom_instance }}{% endblock %}
 {% block contenu %}
 <h1>{% if evenement %}Modifier l'événement{% else %}Nouvel événement{% endif %}</h1>
 <form method="post">{% csrf_token %}{{ form.as_p }}<button type="submit">Enregistrer</button></form>

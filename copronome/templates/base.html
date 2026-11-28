@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block titre %}Copronome{% endblock %}</title>
+  <title>{% block titre %}{{ nom_instance }}{% endblock %}</title>
   <link rel="stylesheet" href="{% static 'copronome.css' %}">
 </head>
 <body>
   <header>
-    <a class="marque" href="{% url 'accueil' %}">Copronome</a>
+    <a class="marque" href="{% url 'accueil' %}">{{ nom_instance }}</a>
     {% if user.is_authenticated %}
     <nav aria-label="Menu principal">
       <ul>
